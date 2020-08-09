@@ -1,44 +1,55 @@
 {
-    "name": "harbinger-lib",
-    "version": "1.0.21",
-    "description": "",
-    "main": "build/src/index.js",
-    "files": [
-        "build/**/*"
-    ],
-    "scripts": {
-        "build": "npm run clean && tsc -d && cp contract/oracle.tz ./build/src/oracle.tz && cp contract/normalizer.tz ./build/src/normalizer.tz",
-        "clean": "rm -rf ./build",
-        "test": "echo \"no tests :(\"",
-        "prepublishOnly": "npm run build"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/tacoinfra/harbinger-lib.git"
-    },
-    "author": "Blockscale LLC",
-    "license": "MIT",
-    "dependencies": {
-        "@lapo/asn1js": "1.1.0",
-        "@ledgerhq/hw-transport": "^5.15.0",
-        "@ledgerhq/hw-transport-node-hid": "^5.16.0",
-        "@taquito/michel-codec": "^6.3.3-beta.0",
-        "@types/cli-progress": "^3.7.0",
-        "@types/libsodium-wrappers": "^0.7.7",
-        "@types/node": "^14.0.6",
-        "@types/node-fetch": "^2.5.7",
-        "@types/secp256k1": "^4.0.1",
-        "aws-sdk": "^2.722.0",
-        "blakejs": "^1.1.0",
-        "bs58check": "^2.1.2",
-        "conseiljs": "5.0.4-beta.1",
-        "conseiljs-softsigner": "5.0.3-beta.0",
-        "libsodium-wrappers": "^0.7.6",
-        "loglevel": "^1.6.8",
-        "node-fetch": "^2.6.0",
-        "secp256k1": "^4.0.2",
-        "ts-node": "^8.8.1",
-        "typescript": "^3.8.3",
-        "web-request": "^1.0.7"
-    }
+  "name": "@tacoinfra/harbinger-lib",
+  "version": "1.0.21",
+  "description": "Common typescript code which powers the CLI and Serverless updaters.",
+  "main": "build/src/index.js",
+  "files": [
+    "build/**/*"
+  ],
+  "scripts": {
+    "build": "npm run clean && tsc -d && cp contract/oracle.tz ./build/src/oracle.tz && cp contract/normalizer.tz ./build/src/normalizer.tz",
+    "clean": "rm -rf ./build",
+    "test": "echo \"no tests :(\"",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tacoinfra/harbinger-lib.git"
+  },
+  "author": "Blockscale LLC",
+  "license": "MIT",
+  "dependencies": {
+    "@lapo/asn1js": "1.1.0",
+    "@ledgerhq/hw-transport": "^5.15.0",
+    "@ledgerhq/hw-transport-node-hid": "^5.16.0",
+    "@taquito/michel-codec": "^6.3.3-beta.0",
+    "@types/cli-progress": "^3.7.0",
+    "@types/libsodium-wrappers": "^0.7.7",
+    "@types/node": "^14.0.6",
+    "@types/node-fetch": "^2.5.7",
+    "@types/secp256k1": "^4.0.1",
+    "aws-sdk": "^2.722.0",
+    "blakejs": "^1.1.0",
+    "bs58check": "^2.1.2",
+    "conseiljs": "5.0.4-beta.1",
+    "conseiljs-softsigner": "5.0.3-beta.0",
+    "libsodium-wrappers": "^0.7.6",
+    "loglevel": "^1.6.8",
+    "node-fetch": "^2.6.0",
+    "secp256k1": "^4.0.2",
+    "ts-node": "^8.8.1",
+    "typescript": "^3.8.3",
+    "web-request": "^1.0.7"
+  },
+  "bugs": {
+    "url": "https://github.com/tacoinfra/harbinger-lib/issues"
+  },
+  "homepage": "https://github.com/tacoinfra/harbinger-lib#readme",
+  "devDependencies": {},
+  "keywords": [
+    "tezos",
+    "oracle",
+    "harbinger",
+    "library"
+  ]
 }
