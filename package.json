@@ -7,7 +7,7 @@
         "build/**/*"
     ],
     "scripts": {
-        "build": "npm run clean && tsc -d && cp ../contract/oracle.tz ./build/src/oracle.tz && cp ../contract/normalizer.tz ./build/src/normalizer.tz",
+        "build": "npm run clean && tsc -d && cp contract/oracle.tz ./build/src/oracle.tz && cp contract/normalizer.tz ./build/src/normalizer.tz",
         "clean": "rm -rf ./build",
         "test": "echo \"no tests :(\"",
         "prepublishOnly": "npm run build"

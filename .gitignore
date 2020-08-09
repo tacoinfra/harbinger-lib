@@ -1,6 +1,7 @@
 .DS_Store
 build
 .smartpy_out
+build/
 
 # Created by https://www.gitignore.io/api/node,serverless
 # Edit at https://www.gitignore.io/?templates=node,serverless
@@ -116,3 +117,4 @@ temp/
 .serverless
 
 # End of https://www.gitignore.io/api/node,serverless
+node_modules
