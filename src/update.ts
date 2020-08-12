@@ -149,9 +149,9 @@ export async function updateOracleFromCoinbaseOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+          assetNames.reduce((previousValue, assetName) => {
+            return previousValue + assetName + ', '
+          }, ''),
       )
     }
     Utils.print('')
@@ -305,9 +305,9 @@ export async function updateOracleFromFeedOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+          assetNames.reduce((previousValue, assetName) => {
+            return previousValue + assetName + ', '
+          }, ''),
       )
     }
     Utils.print('')
