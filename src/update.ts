@@ -149,9 +149,9 @@ export async function updateOracleFromCoinbaseOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
       )
     }
     Utils.print('')
@@ -305,9 +305,9 @@ export async function updateOracleFromFeedOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
       )
     }
     Utils.print('')
@@ -577,11 +577,8 @@ async function retrieveOracleDataFromCoinbase(
  * @returns The feed data as a JSON object.
  */
 function parseRawOracleData(oracleData: any): any {
-  // TODO(keeferatylor): Remove when https://github.com/tacoinfra/tezos-oracle/issues/40 is closed.
-  console.log(JSON.stringify(oracleData))
   const result = {
     messages: oracleData.messages.map((message: string) => {
-      console.log('Parse ' + message)
       // Parse and normalize the Michelson.
       const parsed = TezosLanguageUtil.hexToMichelson(message.slice(2))
       const normalized = TezosLanguageUtil.normalizeMichelsonWhiteSpace(
