@@ -4,6 +4,6 @@
  * Levels of logging.
  */
 export enum LogLevel {
-    Info,
-    Debug
+  Info,
+  Debug,
 }

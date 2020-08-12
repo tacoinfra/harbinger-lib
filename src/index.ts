@@ -1,23 +1,28 @@
 import fetch from 'node-fetch'
-import { getLogger, LogLevelDesc } from 'loglevel';
-import { registerFetch, registerLogger } from 'conseiljs';
+import { getLogger, LogLevelDesc } from 'loglevel'
+import { registerFetch, registerLogger } from 'conseiljs'
 
 /**
  * Initialize the oracle library by providing implementations for Conseil.
- * 
+ *
  * TODO(keefertaylor): Investigate if these implementations can be provided by a a client library.
- * 
+ *
  * @param conseilLogLevel The log level to use for Conseil.
  */
-export function initOracleLib(conseilLogLevel: LogLevelDesc = 'error') {
-    const logger = getLogger('conseiljs');
-    logger.setLevel(conseilLogLevel, false);
+export function initOracleLib(conseilLogLevel: LogLevelDesc = 'error'): void {
+  const logger = getLogger('conseiljs')
+  logger.setLevel(conseilLogLevel, false)
 
-    registerLogger(logger)
-    registerFetch(fetch)
+  registerLogger(logger)
+  registerFetch(fetch)
 }
 
-export { default as updateOracleFromCoinbase, updateOracleFromCoinbaseOnce, updateOracleFromFeed, updateOracleFromFeedOnce } from './update'
+export {
+  default as updateOracleFromCoinbase,
+  updateOracleFromCoinbaseOnce,
+  updateOracleFromFeed,
+  updateOracleFromFeedOnce,
+} from './update'
 export { deployNormalizer, deployOracle } from './deploy'
 export { default as pushOracleData } from './push'
 export { LogLevel } from './common'

@@ -1,12 +1,13 @@
-# Oracle Contract 
+# Oracle Contract
 
-## Deploy 
+## Deploy
+
 ```shell
-./alpha-client     -P 443     -S     -A tezos-dev.cryptonomic-infra.tech     --wait none     originate     contract ArthurContract4     transferring 0 from tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW     running ../coinbase-oracle/contract/oracle.tz     --init 'Pair 
+./alpha-client     -P 443     -S     -A tezos-dev.cryptonomic-infra.tech     --wait none     originate     contract ArthurContract4     transferring 0 from tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW     running ../coinbase-oracle/contract/oracle.tz     --init 'Pair
     (Some "sppk7bM2qnLJAci6YE9eCtKL1mHpzR7EsVcZ8Ub2ndQsUuewq8GeRwd")
     {
-        Elt "btc-usd" (Pair 1590928740 (Pair 1590928800 (Pair 9559450000 (Pair 9561710000 (Pair 9561710000 (Pair 9559440000 7193127))))));  
-        Elt "xtz-btc" (Pair 1590928680 (Pair 1590928740 (Pair 305 (Pair 305 (Pair 305 (Pair 305 343000000)))))); 
+        Elt "btc-usd" (Pair 1590928740 (Pair 1590928800 (Pair 9559450000 (Pair 9561710000 (Pair 9561710000 (Pair 9559440000 7193127))))));
+        Elt "xtz-btc" (Pair 1590928680 (Pair 1590928740 (Pair 305 (Pair 305 (Pair 305 (Pair 305 343000000))))));
         Elt "xtz-usd" (Pair 1590928740 (Pair 1590928800 (Pair 2927500 (Pair 2927500 (Pair 2927500 (Pair 2927500 116310000))))));
     }' --burn-cap 1.668
 ```
@@ -18,10 +19,10 @@
 ```
 
 ## Update XTZ Pairs
+
 ```shell
 ./alpha-client -P 443 -S -A tezos-dev.cryptonomic-infra.tech --wait none transfer 0 from tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW  to ArthurContract4 --arg 'Left (Left {Elt "xtz-btc" (Pair "spsig17XWiDk9SBJ3nXXctxbPr15i8uvfd8ccyphGXEWyr4ETfUSQR4wTvGoxRa6ULYnMDvzvosmqu8EAHTbtnx4VnGjCjZX1uZ" (Pair 1590945840 (Pair 1590945900 (Pair 299 (Pair 299 (Pair 298 (Pair 298 41920000))))))); Elt "xtz-usd" (Pair "spsig1QRxAi11jNz6EQuu551y1q6rCUp8V2L4br5zZJRbgH6gaHhbE5ejyrAkoJzbPxX98risjG3QSoCF2MoE2xQ8QfVzw71KBW" (Pair 1590945900 (Pair 1590945960 (Pair 2842100 (Pair 2843300 (Pair 2840000 (Pair 2843300 175070000)))))))})'
 ```
-
 
 ## Revoke Contract
 
@@ -35,11 +36,13 @@ Medianizer Contract Address: KT1QypTCmpC9CxR7RdKH958LKeF54PQ5MVEJ
 Oracle Contract Address: KT1VWfQLQL2KDZ1J8htBjccSSkLrdC9tQ4xN
 
 Manual:
+
 ```shell
 tezos-client -P 443 -S -A tezos-dev.cryptonomic-infra.tech --wait none transfer 0.000001 from tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW  to KT1QypTCmpC9CxR7RdKH958LKeF54PQ5MVEJ  --arg '{ Elt "btc-usd" (Pair 1590928740 (Pair 1590928800 (Pair 9559450000 (Pair 9561710000 (Pair 9561710000 (Pair 9559440000 7193127)))))); }'
 ```
 
 Via Oracle:
+
 ```shell
 tezos-client -P 443 -S -A tezos-dev.cryptonomic-infra.tech --wait none transfer 0.000001 from tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW  to KT1VWfQLQL2KDZ1J8htBjccSSkLrdC9tQ4xN --arg 'Right "KT1QypTCmpC9CxR7RdKH958LKeF54PQ5MVEJ"'
 ```
