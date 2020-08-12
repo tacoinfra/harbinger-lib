@@ -7,16 +7,8 @@ import { KeyStore, KeyStoreCurve, KeyStoreType } from 'conseiljs'
 import { KMS } from 'aws-sdk'
 import ASN1 from './asn1'
 import Utils from './utils'
-
-// TODO(keefertaylor): Enforce naming scheme on these files.
-
-// Watermark bytes
-// TODO(keefertaylor): Centralize prefixes.
-const PUBLIC_KEY_PREFIX = new Uint8Array([3, 254, 226, 86]) // sppk
-const PUBLIC_KEY_HASH_PREFIX = new Uint8Array([6, 161, 161]) // tz2
-
-// Length of the public key hash.
-const PUBLIC_KEY_HASH_LENGTH = 20
+import Prefixes from './prefixes'
+import Constants from './constants'
 
 export default class AwsKmsKeyStore implements KeyStore {
   /** KeyStore properties. */
@@ -60,10 +52,13 @@ export default class AwsKmsKeyStore implements KeyStore {
     const uncompressedPublicKeyBytes = Utils.hexToBytes(publicKeyHex)
     const publicKeyBytes = Utils.compressKey(uncompressedPublicKeyBytes)
 
-    const publicKey = Utils.base58CheckEncode(publicKeyBytes, PUBLIC_KEY_PREFIX)
+    const publicKey = Utils.base58CheckEncode(
+      publicKeyBytes,
+      Prefixes.secp256k1PublicKey,
+    )
     const publicKeyHash = Utils.base58CheckEncode(
-      Utils.blake2b(publicKeyBytes, PUBLIC_KEY_HASH_LENGTH),
-      PUBLIC_KEY_HASH_PREFIX,
+      Utils.blake2b(publicKeyBytes, Constants.publicKeyHashLength),
+      Prefixes.secp256k1PublicKeyHash,
     )
 
     return new AwsKmsKeyStore(publicKey, publicKeyHash)

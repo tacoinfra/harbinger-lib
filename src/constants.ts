@@ -1,5 +1,5 @@
 /**
- * Constants used across the tezos-oracle CLI.
+ * Constants used across Harbinger.
  */
 const constants = {
   /** The cost per byte of storage used, in nanotez. */
@@ -31,6 +31,9 @@ const constants = {
 
   /** A safety margin to apply to storage estimates. */
   storageSafetyMargin: 20,
+
+  /** The length of a public key hash in bytes. */
+  publicKeyHashLength: 20,
 }
 
 export default constants

@@ -1,4 +1,4 @@
-/** Common functionality used across tezos-oracle-lib */
+/** Common functionality used across Harbinger */
 
 /**
  * Levels of logging.

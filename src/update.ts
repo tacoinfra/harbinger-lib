@@ -513,7 +513,7 @@ async function makeUpdateOperationFromFeed(
 async function retrieveOracleDataFromFeed(oracleFeedURL: string): Promise<any> {
   const oracleDataRaw = await WebRequest.get(oracleFeedURL, {
     headers: {
-      'User-Agent': 'tezos-oracle-cli',
+      'User-Agent': 'harbinger',
       accept: 'json',
     },
   })
@@ -552,7 +552,7 @@ async function retrieveOracleDataFromCoinbase(
   const oracleURL = apiURL + requestPath
   const oracleDataRaw = await WebRequest.get(oracleURL, {
     headers: {
-      'User-Agent': 'tezos-oracle-cli',
+      'User-Agent': 'harbinger',
       'CB-ACCESS-KEY': apiKeyID,
       'CB-ACCESS-SIGN': signature,
       'CB-ACCESS-TIMESTAMP': timestamp,
