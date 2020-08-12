@@ -6,14 +6,6 @@ import {
   TezosBlock,
 } from 'conseiljs'
 
-/** Signature size in Tezos. */
-// TODO(keefertaylor): Refactor to constants.
-const SIGNATURE_SIZE_BYTES = 64
-const ORIGINATION_BURN = 257
-
-const GAS_SAFETY_MARGIN = 100
-const STORAGE_SAFETY_MARGIN = 20
-
 /**
  * Applies fee estimations to operations in Tezos.
  */
@@ -50,15 +42,16 @@ export default class OperationFeeEstimator {
     )
 
     // Apply safety margins.
-    const gasWithSafetyMargin = consumedResources.gas + GAS_SAFETY_MARGIN
+    const gasWithSafetyMargin =
+      consumedResources.gas + Constants.gasSafetyMargin
     let storageWithSafetyMargin =
-      consumedResources.storageCost + STORAGE_SAFETY_MARGIN
+      consumedResources.storageCost + Constants.storageSafetyMargin
 
     // Origination operations require an additional storage burn.
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i]
       if (transaction.kind === 'origination') {
-        storageWithSafetyMargin += ORIGINATION_BURN
+        storageWithSafetyMargin += Constants.originationBurnCost
       }
     }
 
@@ -162,7 +155,7 @@ export default class OperationFeeEstimator {
       block.hash,
       transactions,
     )
-    const size = forgedOperationGroup.length / 2 + SIGNATURE_SIZE_BYTES
+    const size = forgedOperationGroup.length / 2 + Constants.signatureSizeBytes
 
     return size
   }
