@@ -1,13 +1,13 @@
 {
   "name": "@tacoinfra/harbinger-lib",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "description": "Common typescript code which powers the CLI and Serverless updaters.",
   "main": "build/src/index.js",
   "files": [
     "build/**/*"
   ],
   "scripts": {
-    "build": "npm run clean && tsc -d && cp contract/oracle.tz ./build/src/oracle.tz && cp contract/normalizer.tz ./build/src/normalizer.tz",
+    "build": "npm run clean && tsc -d && cp harbinger-contracts/oracle.tz ./build/src/oracle.tz && cp harbinger-contracts/normalizer.tz ./build/src/normalizer.tz",
     "clean": "rm -rf ./build",
     "lint": "eslint . --ext .ts --fix",
     "test": "echo \"no tests :(\"",
