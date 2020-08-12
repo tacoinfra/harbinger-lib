@@ -1,6 +1,6 @@
 {
   "name": "@tacoinfra/harbinger-lib",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "Common typescript code which powers the CLI and Serverless updaters.",
   "main": "build/src/index.js",
   "files": [
