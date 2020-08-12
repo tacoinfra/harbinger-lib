@@ -145,7 +145,10 @@ const utils = {
       await sodium.ready
       const decodedBytes = base58Check.decode(privateKey).slice(4)
       const keyPair = sodium.crypto_sign_seed_keypair(decodedBytes)
-      const derivedPrivateKeyBytes = this.mergeBytes(Prefixes.ed25519SecretKey, keyPair.privateKey)
+      const derivedPrivateKeyBytes = this.mergeBytes(
+        Prefixes.ed25519SecretKey,
+        keyPair.privateKey,
+      )
       const derivedPrivateKey = base58Check.encode(derivedPrivateKeyBytes)
 
       return await KeyStoreUtils.restoreIdentityFromSecretKey(derivedPrivateKey)
