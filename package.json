@@ -1,6 +1,6 @@
 {
   "name": "@tacoinfra/harbinger-lib",
-  "version": "1.0.21",
+  "version": "0.0.1",
   "description": "Common typescript code which powers the CLI and Serverless updaters.",
   "main": "build/src/index.js",
   "files": [
@@ -9,6 +9,7 @@
   "scripts": {
     "build": "npm run clean && tsc -d && cp contract/oracle.tz ./build/src/oracle.tz && cp contract/normalizer.tz ./build/src/normalizer.tz",
     "clean": "rm -rf ./build",
+    "lint": "eslint . --ext .ts --fix",
     "test": "echo \"no tests :(\"",
     "prepublishOnly": "npm run build"
   },
@@ -45,7 +46,16 @@
     "url": "https://github.com/tacoinfra/harbinger-lib/issues"
   },
   "homepage": "https://github.com/tacoinfra/harbinger-lib#readme",
-  "devDependencies": {},
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^3.9.0",
+    "@typescript-eslint/parser": "^3.9.0",
+    "eslint": "^7.6.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-mocha": "^8.0.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "prettier": "^2.0.5"
+  },
   "keywords": [
     "tezos",
     "oracle",
