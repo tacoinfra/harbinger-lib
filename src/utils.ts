@@ -15,6 +15,7 @@ import {
 } from 'conseiljs'
 import { KeyStoreUtils, SoftSigner } from 'conseiljs-softsigner'
 import ASN1 from './asn1'
+import Prefixes from './prefixes'
 
 // Following libraries do not include .d.ts files.
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -144,8 +145,7 @@ const utils = {
       await sodium.ready
       const decodedBytes = base58Check.decode(privateKey).slice(4)
       const keyPair = sodium.crypto_sign_seed_keypair(decodedBytes)
-      const prefix = new Uint8Array([43, 246, 78, 7])
-      const derivedPrivateKeyBytes = this.mergeBytes(prefix, keyPair.privateKey)
+      const derivedPrivateKeyBytes = this.mergeBytes(Prefixes.ed25519SecretKey, keyPair.privateKey)
       const derivedPrivateKey = base58Check.encode(derivedPrivateKeyBytes)
 
       return await KeyStoreUtils.restoreIdentityFromSecretKey(derivedPrivateKey)
@@ -177,9 +177,7 @@ const utils = {
     ])
 
     const hash = this.blake2b(new Uint8Array(decodedAndOperationPrefix), 20)
-    const kt1Prefix = new Uint8Array([2, 90, 121])
-
-    return this.base58CheckEncode(hash, kt1Prefix)
+    return this.base58CheckEncode(hash, Prefixes.smartContractAddress)
   },
 
   /**
