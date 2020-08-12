@@ -1,0 +1,4 @@
+[submodule "harbinger-contracts"]
+	path = harbinger-contracts
+	url = https://github.com/tacoinfra/harbinger-contracts
+	branch = master
