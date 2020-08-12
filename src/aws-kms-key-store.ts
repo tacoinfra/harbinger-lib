@@ -8,8 +8,6 @@ import { KMS } from 'aws-sdk'
 import ASN1 from './asn1'
 import Utils from './utils'
 
-// TODO(keefertaylor): Enforce naming scheme on these files.
-
 // Watermark bytes
 // TODO(keefertaylor): Centralize prefixes.
 const PUBLIC_KEY_PREFIX = new Uint8Array([3, 254, 226, 86]) // sppk
