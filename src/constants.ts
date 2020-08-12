@@ -19,6 +19,18 @@ const constants = {
 
   /** The maximum amount of storage that can be added in an operation. */
   storageLimit: 60_000,
+
+  /** The length of a signature in bytes. */
+  signatureSizeBytes: 64,
+
+  /** The cost of the burn when a contract is originated */
+  originationBurnCost: 257,
+
+  /** A safety margin to apply to gas estimates. */
+  gasSafetyMargin: 100,
+
+  /** A safety margin to apply to storage estimates. */
+  storageSafetyMargin: 20,
 }
 
 export default constants
