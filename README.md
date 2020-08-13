@@ -2,7 +2,7 @@
 
 ## About 
 
-`harbinger-lib` is a self contained npm package written in typescript that contains functionality for working with the [Harbinger Oracle](https://github.com/tacoinfra/harbinger). To get started with Harbinger, visit the [main documentation]((https://github.com/tacoinfra/harbinger)).
+`harbinger-lib` is a self contained npm package written in typescript that contains functionality for working with the [Harbinger Oracle](https://github.com/tacoinfra/harbinger). To get started with Harbinger, visit the [main documentation](https://github.com/tacoinfra/harbinger).
 
 This library provides base functionality for the [Harbinger CLI](), [Harbinger Poster]() and [Harbinger Signer](). This library is also useful for developers who want to interact with Harbinger functionality. Posters, signers, and users of Harbinger likely want to use one of the preceding higher level components.
 
