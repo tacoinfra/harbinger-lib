@@ -26,6 +26,11 @@ export default async function pushOracleData(
   pusherPrivateKey: string,
   tezosNodeURL: string,
 ): Promise<void> {
+  if (logLevel == LogLevel.Debug) {
+    Utils.print('Using node located at: ' + tezosNodeURL)
+    Utils.print('')
+  }
+
   try {
     Utils.print(`Pushing data from oracle located at: ${oracleContractAddress}`)
     Utils.print(`To: ${medianizerContractAddress}`)

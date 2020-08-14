@@ -24,6 +24,11 @@ export default async function revokeOracle(
   revokerPrivateKey: string,
   tezosNodeURL: string,
 ): Promise<void> {
+  if (logLevel == LogLevel.Debug) {
+    Utils.print('Using node located at: ' + tezosNodeURL)
+    Utils.print('')
+  }
+
   try {
     Utils.print('Revoking oracle contract: ' + oracleContractAddress)
 
