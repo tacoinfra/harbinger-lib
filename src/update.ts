@@ -68,6 +68,11 @@ export default async function updateOracleFromCoinbase(
   tezosNodeURL: string,
   medianizerContractAddress: string | undefined = undefined,
 ): Promise<void> {
+  if (logLevel == LogLevel.Debug) {
+    Utils.print('Using node located at: ' + tezosNodeURL)
+    Utils.print('')
+  }
+
   // Generate a keystore.
   const keyStore = await Utils.keyStoreFromPrivateKey(posterPrivateKey)
   const signer = await Utils.signerFromKeyStore(keyStore)
@@ -232,6 +237,11 @@ export async function updateOracleFromFeed(
   tezosNodeURL: string,
   medianizerContractAddress: string | undefined = undefined,
 ): Promise<void> {
+  if (logLevel == LogLevel.Debug) {
+    Utils.print('Using node located at: ' + tezosNodeURL)
+    Utils.print('')
+  }
+
   // Generate a keystore.
   const keyStore = await Utils.keyStoreFromPrivateKey(posterPrivateKey)
   const signer = await Utils.signerFromKeyStore(keyStore)
@@ -584,7 +594,6 @@ function parseRawOracleData(oracleData: any): any {
       const normalized = TezosLanguageUtil.normalizeMichelsonWhiteSpace(
         parsed.code,
       )
-      console.log('done')
 
       return normalized
     }),

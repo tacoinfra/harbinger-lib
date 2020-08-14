@@ -90,6 +90,11 @@ export async function deployOracle(
   deployerPrivateKey: string,
   tezosNodeURL: string,
 ): Promise<void> {
+  if (logLevel == LogLevel.Debug) {
+    Utils.print('Using node located at: ' + tezosNodeURL)
+    Utils.print('')
+  }
+
   try {
     Utils.print('Deploying an oracle contract.')
     const storage = makeOracleStorage(logLevel, assetNames, signerPublicKey)
@@ -134,6 +139,11 @@ export async function deployNormalizer(
   oracleContractAddress: string,
   tezosNodeURL: string,
 ): Promise<void> {
+  if (logLevel == LogLevel.Debug) {
+    Utils.print('Using node located at: ' + tezosNodeURL)
+    Utils.print('')
+  }
+
   try {
     Utils.print('Deploying a normalizer contract.')
     Utils.print('')
