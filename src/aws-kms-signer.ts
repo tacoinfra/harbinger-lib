@@ -45,9 +45,7 @@ export default class AwsKmsSigner implements Signer {
     const { Signature: derSignature } = await this.kms.sign(params).promise()
     if (!(derSignature instanceof Uint8Array)) {
       throw new Error(
-        `Unexpected response from KMS. Expected Uint8Array but got ${
-          derSignature?.toString() || 'undefined'
-        }`,
+        "Unexpected response from KMS"
       )
     }
 
