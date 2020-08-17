@@ -71,7 +71,7 @@ function makeNormalizerStorage(
   numDataPoints: number,
   oracleContractAddress: string,
 ) {
-  return `(Pair (Pair "${assetName}" {Elt "${assetName}" (Pair (Pair 0 "0") (Pair (Pair (Pair 0 -1) (Pair {Elt 0 0} 0)) (Pair (Pair 0 -1) (Pair {Elt 0 0} 0))))}) (Pair ${numDataPoints} "${oracleContractAddress}"))`
+  return `(Pair (Pair {"${assetName}"} {Elt "${assetName}" (Pair (Pair 0 "0") (Pair (Pair (Pair 0 -1) (Pair {Elt 0 0} 0)) (Pair (Pair 0 -1) (Pair {Elt 0 0} 0))))}) (Pair ${numDataPoints} "${oracleContractAddress}"))`
 }
 
 /**
