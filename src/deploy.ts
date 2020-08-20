@@ -62,16 +62,30 @@ function makeOracleStorage(
 /**
  * Make a storage parameter for a Normalizer contract.
  *
- * @param assetName The name of the asset to normalize.
+ * @param assetNames An array of asset names to include in the oracle. The asset names must be in alphabetical order.
  * @param numDataPoints The number of data points to normalize over.
  * @param oracleContractAddress The KT1 address of the Oracle contract.
  */
 function makeNormalizerStorage(
-  assetName: string,
+  assetNames: Array<string>,
   numDataPoints: number,
   oracleContractAddress: string,
 ) {
-  return `(Pair (Pair {"${assetName}"} {Elt "${assetName}" (Pair (Pair 0 "0") (Pair (Pair (Pair 0 -1) (Pair {Elt 0 0} 0)) (Pair (Pair 0 -1) (Pair {Elt 0 0} 0))))}) (Pair ${numDataPoints} "${oracleContractAddress}"))`
+  const assetNameParam = assetNames.reduce(
+    (previous, current) => {
+      return previous + `"${current}"; `
+     },
+    ''
+  )
+
+  const assetValuesParam = assetNames.reduce(
+    (previous, current) => {
+      return previous + `Elt "${current}" (Pair (Pair 0 "0") (Pair (Pair (Pair 0 -1) (Pair {Elt 0 0} 0)) (Pair (Pair 0 -1) (Pair {Elt 0 0} 0))));`
+    },
+    ''
+  )
+
+  return `(Pair (Pair {${assetNameParam}} {${assetValuesParam}}) (Pair ${numDataPoints} "${oracleContractAddress}"))`
 }
 
 /**
@@ -126,7 +140,7 @@ export async function deployOracle(
  *
  * @param logLevel The level at which to log output.
  * @param deployerPrivateKey The base58check private key of the deployer, prefixed with 'edsk'. This account will pay origination fees.
- * @param assetName The name of the asset to normalize.
+ * @param assetNames An array of asset names to include in the oracle. The asset names must be in alphabetical order.
  * @param numDataPoints The number of data points to normalize over.
  * @param oracleContractAddress The KT1 address of the Oracle contract.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
@@ -134,7 +148,7 @@ export async function deployOracle(
 export async function deployNormalizer(
   logLevel: LogLevel,
   deployerPrivateKey: string,
-  assetName: string,
+  assetNames: Array<string>,
   numDataPoints: number,
   oracleContractAddress: string,
   tezosNodeURL: string,
@@ -150,7 +164,7 @@ export async function deployNormalizer(
 
     // Prepare storage parameters.
     const storage = makeNormalizerStorage(
-      assetName,
+      assetNames,
       numDataPoints,
       oracleContractAddress,
     )
