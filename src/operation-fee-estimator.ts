@@ -26,6 +26,8 @@ export default class OperationFeeEstimator {
   public async estimateAndApplyFees(
     transactions: Array<StackableOperation>,
   ): Promise<Array<StackableOperation>> {
+    console.log("Transactions " + JSON.stringify(transactions))
+
     // Set a zero fee on each transaction.
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i]
@@ -33,31 +35,80 @@ export default class OperationFeeEstimator {
       // Start with a zero fee.
       transaction.fee = '0'
     }
+    console.log("Transactions " + JSON.stringify(transactions))
 
-    // Estimate resource limits for all transactions..
-    const consumedResources = await TezosNodeWriter.estimateOperation(
-      this.tezosNodeUrl,
-      'main',
-      ...transactions,
-    )
-
-    // Apply safety margins.
-    const gasWithSafetyMargin =
-      consumedResources.gas + Constants.gasSafetyMargin
-    let storageWithSafetyMargin =
-      consumedResources.storageCost + Constants.storageSafetyMargin
-
-    // Origination operations require an additional storage burn.
+    // Estimate each operation while keeping track of totals.
+    var totalGasUsed = 0
+    var totalStorageUsed = 0
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i]
+      console.log("Estimating transaction " + i)
+      console.log("Transactions " + JSON.stringify(transactions))
+      console.log("Transcation: " + JSON.stringify(transaction))
+
+
+      // Estimate resources used in prior transactions.
+      let priorConsumedResources = {
+        gas: 0,
+        storageCost: 0
+      }
+      if (i !== 0) {
+        const priorTransactions = transactions.slice(0, i)
+        priorConsumedResources = await TezosNodeWriter.estimateOperation(
+          this.tezosNodeUrl,
+          'main',
+          ...priorTransactions,
+        )
+      }
+      console.log("Previous estimates")
+      console.log("Gas: " + priorConsumedResources.gas)
+      console.log("Storage: " + priorConsumedResources.storageCost)
+
+      // Estimate resources for everything up to the current transaction.
+      const currentTransactions = transactions.slice(0, i+1)
+      const currentConsumedResources = await TezosNodeWriter.estimateOperation(
+        this.tezosNodeUrl,
+        'main',
+        ...currentTransactions,
+      )
+      console.log("Current estimates")
+      console.log("Gas: " + currentConsumedResources.gas)
+      console.log("Storage: " + currentConsumedResources.storageCost)
+      console.log("")
+
+
+      // Estimate a delta.
+      const gasLimitDelta = currentConsumedResources.gas - priorConsumedResources.gas
+      const storageLimitDelta = currentConsumedResources.storageCost - priorConsumedResources.storageCost
+      console.log("Delta estimates")
+      console.log("Gas: " + gasLimitDelta)
+      console.log("Storage: " + storageLimitDelta)
+      console.log("")
+
+      // Apply safety margins.
+      const gasWithSafetyMargin =
+        gasLimitDelta + Constants.gasSafetyMargin
+      let storageWithSafetyMargin =
+         storageLimitDelta + Constants.storageSafetyMargin
+         console.log("Safety Margin estimates")
+         console.log("Gas: " + gasLimitDelta)
+         console.log("Storage: " + storageWithSafetyMargin)
+         console.log("")
+
+
+      // Origination operations require an additional storage burn.
       if (transaction.kind === 'origination') {
+        console.log("Burning")
         storageWithSafetyMargin += Constants.originationBurnCost
       }
-    }
+      
+      // Apply gas and storage to the operation, causing a mutation.
+      transaction.storage_limit = `${storageWithSafetyMargin}`
+      transaction.gas_limit = `${gasWithSafetyMargin}`
 
-    // Apply storage and gas limits to the first transaction, which will set them for the group.
-    transactions[0].storage_limit = `${storageWithSafetyMargin}`
-    transactions[0].gas_limit = `${gasWithSafetyMargin}`
+      totalGasUsed += gasWithSafetyMargin
+      totalStorageUsed += storageWithSafetyMargin
+    }
 
     // Grab the block head so we have constant sizes.
     const blockHead = await TezosNodeReader.getBlockAtOffset(
