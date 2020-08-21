@@ -100,7 +100,7 @@ export default async function updateOracleFromCoinbase(
       )
 
       Utils.print(
-        `Waiting ${updateIntervalSeconds} seconds to do next update. (Customize with --updateInterval)`,
+        `Waiting ${updateIntervalSeconds} seconds to do next update. (Customize with --update-interval)`,
       )
       await Utils.sleep(updateIntervalSeconds)
     }
@@ -267,7 +267,7 @@ export async function updateOracleFromFeed(
       )
 
       Utils.print(
-        `Waiting ${updateIntervalSeconds} seconds to do next update. (Customize with --updateInterval)`,
+        `Waiting ${updateIntervalSeconds} seconds to do next update. (Customize with --update-interval)`,
       )
       await Utils.sleep(updateIntervalSeconds)
     }
