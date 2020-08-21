@@ -15,7 +15,7 @@ import OperationFeeEstimator from './operation-fee-estimator'
  *
  * @param logLevel The level at which to log output.
  * @param oracleContractAddress The address of the oracle contract.
- * @param medianizerContractAddress The address of the medianizer contract.
+ * @param normalizerContractAddress The address of the normalizer contract.
  * @param pusherPrivateKey The base58check encoded private key of the pusher. This account will pay transaction fees.
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
@@ -23,7 +23,7 @@ import OperationFeeEstimator from './operation-fee-estimator'
 export default async function pushOracleData(
   logLevel: LogLevel,
   oracleContractAddress: string,
-  medianizerContractAddress: string,
+  normalizerContractAddress: string,
   pusherPrivateKey: string,
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
@@ -41,7 +41,7 @@ export default async function pushOracleData(
       await pushOracleDataOnce(
         logLevel,
         oracleContractAddress,
-        medianizerContractAddress,
+        normalizerContractAddress,
         pusherPrivateKey,
         tezosNodeURL
       )
@@ -55,7 +55,7 @@ export default async function pushOracleData(
     await pushOracleDataOnce(
       logLevel,
       oracleContractAddress,
-      medianizerContractAddress,
+      normalizerContractAddress,
       pusherPrivateKey,
       tezosNodeURL
     )
@@ -67,21 +67,21 @@ export default async function pushOracleData(
  *
  * @param logLevel The level at which to log output.
  * @param oracleContractAddress The address of the oracle contract.
- * @param medianizerContractAddress The address of the medianizer contract.
+ * @param normalizerContractAddress The address of the normalizer contract.
  * @param pusherPrivateKey The base58check encoded private key of the pusher. This account will pay transaction fees.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  */
 export async function pushOracleDataOnce(
   logLevel: LogLevel,
   oracleContractAddress: string,
-  medianizerContractAddress: string,
+  normalizerContractAddress: string,
   pusherPrivateKey: string,
   tezosNodeURL: string,
 ): Promise<void> {
 
   try {
     Utils.print(`Pushing data from oracle located at: ${oracleContractAddress}`)
-    Utils.print(`To: ${medianizerContractAddress}`)
+    Utils.print(`To: ${normalizerContractAddress}`)
     Utils.print('')
 
     // Generate a keystore.
@@ -103,7 +103,7 @@ export async function pushOracleDataOnce(
       keystore,
       counter + 1,
       oracleContractAddress,
-      medianizerContractAddress,
+      normalizerContractAddress,
     )
 
     const operationFeeApplicator = new OperationFeeEstimator(tezosNodeURL)
@@ -135,7 +135,7 @@ export async function pushOracleDataOnce(
  * @param keystore The keystore for the account.
  * @param counter The counter for the operation.
  * @param oracleContractAddress The address of the oracle contract.
- * @param medianizerContractAddress The address of the medianizer contract.
+ * @param normalizerContractAddress The address of the normalizer contract.
  * @param tezosNodeURL The Tezos node to use.
  * @param dependentOperation An optional operation that must be executed prior to the push.
  */
@@ -144,10 +144,10 @@ export function constructPushOperation(
   keystore: KeyStore,
   counter: number,
   oracleContractAddress: string,
-  medianizerContractAddress: string,
+  normalizerContractAddress: string,
 ): Transaction {
   // Make the update parameter.
-  const parameter = `"${medianizerContractAddress}%update"`
+  const parameter = `"${normalizerContractAddress}%update"`
   if (logLevel == LogLevel.Debug) {
     Utils.print('Made parameter: ')
     Utils.print(parameter)

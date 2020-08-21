@@ -54,7 +54,7 @@ interface OracleData {
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @param medianizerContractAddress If set, updates are forwarded to a medianizer contract. Defaults to undefined.
+ * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
  */
 export default async function updateOracleFromCoinbase(
   logLevel: LogLevel,
@@ -66,7 +66,7 @@ export default async function updateOracleFromCoinbase(
   posterPrivateKey: string,
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
-  medianizerContractAddress: string | undefined = undefined,
+  normalizerContractAddress: string | undefined = undefined,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -96,7 +96,7 @@ export default async function updateOracleFromCoinbase(
         keyStore,
         signer,
         tezosNodeURL,
-        medianizerContractAddress,
+        normalizerContractAddress,
       )
 
       Utils.print(
@@ -115,7 +115,7 @@ export default async function updateOracleFromCoinbase(
       keyStore,
       signer,
       tezosNodeURL,
-      medianizerContractAddress,
+      normalizerContractAddress,
     )
   }
 }
@@ -132,7 +132,7 @@ export default async function updateOracleFromCoinbase(
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @param medianizerContractAddress If set, updates are forwarded to a medianizer contract. Defaults to undefined.
+ * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
  * @returns The operation hash.
  */
 export async function updateOracleFromCoinbaseOnce(
@@ -145,7 +145,7 @@ export async function updateOracleFromCoinbaseOnce(
   keyStore: KeyStore,
   signer: Signer,
   tezosNodeURL: string,
-  medianizerContractAddress: string | undefined = undefined,
+  normalizerContractAddress: string | undefined = undefined,
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -178,16 +178,16 @@ export async function updateOracleFromCoinbaseOnce(
     )
     operations.push(operation)
 
-    // Push an operation to the medianizer if an address was provided.
-    if (medianizerContractAddress !== undefined) {
-      const medianizerPushOperation = constructPushOperation(
+    // Push an operation to the normalizer if an address was provided.
+    if (normalizerContractAddress !== undefined) {
+      const normalizerPushOperation = constructPushOperation(
         logLevel,
         keyStore,
         counter + 2,
         oracleContractAddress,
-        medianizerContractAddress,
+        normalizerContractAddress,
       )
-      operations.push(medianizerPushOperation)
+      operations.push(normalizerPushOperation)
     }
 
     const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL)
@@ -225,7 +225,7 @@ export async function updateOracleFromCoinbaseOnce(
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @param medianizerContractAddress If set, updates are forwarded to a medianizer contract. Defaults to undefined.
+ * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
  */
 export async function updateOracleFromFeed(
   logLevel: LogLevel,
@@ -235,7 +235,7 @@ export async function updateOracleFromFeed(
   posterPrivateKey: string,
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
-  medianizerContractAddress: string | undefined = undefined,
+  normalizerContractAddress: string | undefined = undefined,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -263,7 +263,7 @@ export async function updateOracleFromFeed(
         keyStore,
         signer,
         tezosNodeURL,
-        medianizerContractAddress,
+        normalizerContractAddress,
       )
 
       Utils.print(
@@ -280,7 +280,7 @@ export async function updateOracleFromFeed(
       keyStore,
       signer,
       tezosNodeURL,
-      medianizerContractAddress,
+      normalizerContractAddress,
     )
   }
 }
@@ -295,7 +295,7 @@ export async function updateOracleFromFeed(
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @param medianizerContractAddress If set, updates are forwarded to a medianizer contract. Defaults to undefined.
+ * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
  * @returns The operation hash.
  */
 export async function updateOracleFromFeedOnce(
@@ -306,7 +306,7 @@ export async function updateOracleFromFeedOnce(
   keyStore: KeyStore,
   signer: Signer,
   tezosNodeURL: string,
-  medianizerContractAddress: string | undefined = undefined,
+  normalizerContractAddress: string | undefined = undefined,
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -337,16 +337,16 @@ export async function updateOracleFromFeedOnce(
     )
     operations.push(operation)
 
-    // Push an operation to the medianizer if an address was provided.
-    if (medianizerContractAddress !== undefined) {
-      const medianizerPushOperation = constructPushOperation(
+    // Push an operation to the normalizer if an address was provided.
+    if (normalizerContractAddress !== undefined) {
+      const normalizerPushOperation = constructPushOperation(
         logLevel,
         keyStore,
         counter + 2,
         oracleContractAddress,
-        medianizerContractAddress,
+        normalizerContractAddress,
       )
-      operations.push(medianizerPushOperation)
+      operations.push(normalizerPushOperation)
     }
 
     const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL)
