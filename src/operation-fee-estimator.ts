@@ -33,7 +33,6 @@ export default class OperationFeeEstimator {
       // Start with a zero fee.
       transaction.fee = '0'
     }
-    console.log("Transactions " + JSON.stringify(transactions))
 
     // Estimate each operation.
     for (let i = 0; i < transactions.length; i++) {
