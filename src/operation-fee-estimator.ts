@@ -34,30 +34,56 @@ export default class OperationFeeEstimator {
       transaction.fee = '0'
     }
 
-    // Estimate resource limits for all transactions..
-    const consumedResources = await TezosNodeWriter.estimateOperation(
-      this.tezosNodeUrl,
-      'main',
-      ...transactions,
-    )
-
-    // Apply safety margins.
-    const gasWithSafetyMargin =
-      consumedResources.gas + Constants.gasSafetyMargin
-    let storageWithSafetyMargin =
-      consumedResources.storageCost + Constants.storageSafetyMargin
-
-    // Origination operations require an additional storage burn.
+    // Estimate each operation.
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i]
+
+      // Estimate resources used in the set of prior transactions.
+      // If there were no prior transactions, set resource usage to 0.
+      let priorConsumedResources = {
+        gas: 0,
+        storageCost: 0
+      }
+      if (i !== 0) {
+        const priorTransactions = transactions.slice(0, i)
+        priorConsumedResources = await TezosNodeWriter.estimateOperation(
+          this.tezosNodeUrl,
+          'main',
+          ...priorTransactions,
+        )
+      }
+
+      // Estimate resources for everything up to the current transaction.
+      // Newer transactions may depend on previous transactions, thus all transactions
+      // must be estimated.
+      const currentTransactions = transactions.slice(0, i+1)
+      const currentConsumedResources = await TezosNodeWriter.estimateOperation(
+        this.tezosNodeUrl,
+        'main',
+        ...currentTransactions,
+      )
+
+      // Find the actual transaction cost by calculating the delta between the two 
+      // transactions resource usages.
+      const gasLimitDelta = currentConsumedResources.gas - priorConsumedResources.gas
+      const storageLimitDelta = currentConsumedResources.storageCost - priorConsumedResources.storageCost
+
+      // Apply safety margins.
+      const gasWithSafetyMargin =
+        gasLimitDelta + Constants.gasSafetyMargin
+      let storageWithSafetyMargin =
+         storageLimitDelta + Constants.storageSafetyMargin
+
+      // Origination operations require an additional storage burn.
+      // Apply an additional burn cost if needed.
       if (transaction.kind === 'origination') {
         storageWithSafetyMargin += Constants.originationBurnCost
       }
+      
+      // Apply gas and storage to the operation, mutating the operation.
+      transaction.storage_limit = `${storageWithSafetyMargin}`
+      transaction.gas_limit = `${gasWithSafetyMargin}`
     }
-
-    // Apply storage and gas limits to the first transaction, which will set them for the group.
-    transactions[0].storage_limit = `${storageWithSafetyMargin}`
-    transactions[0].gas_limit = `${gasWithSafetyMargin}`
 
     // Grab the block head so we have constant sizes.
     const blockHead = await TezosNodeReader.getBlockAtOffset(
