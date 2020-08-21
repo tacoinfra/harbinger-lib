@@ -11,12 +11,13 @@ import Constants from './constants'
 import OperationFeeEstimator from './operation-fee-estimator'
 
 /**
- * Push oracle data to a medianizer contract.
+ * Push oracle data to a normalizer contract one or more times.
  *
  * @param logLevel The level at which to log output.
  * @param oracleContractAddress The address of the oracle contract.
  * @param medianizerContractAddress The address of the medianizer contract.
  * @param pusherPrivateKey The base58check encoded private key of the pusher. This account will pay transaction fees.
+ * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  */
 export default async function pushOracleData(
@@ -24,12 +25,59 @@ export default async function pushOracleData(
   oracleContractAddress: string,
   medianizerContractAddress: string,
   pusherPrivateKey: string,
+  updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
     Utils.print('')
   }
+
+  // Loop updates if needed.
+  if (updateIntervalSeconds) {
+    // Loop indefinitely, updating the oracle and then sleeping for the update interval.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      await pushOracleDataOnce(
+        logLevel,
+        oracleContractAddress,
+        medianizerContractAddress,
+        pusherPrivateKey,
+        tezosNodeURL
+      )
+
+      Utils.print(
+        `Waiting ${updateIntervalSeconds} seconds to do next update. (Customize with --updateInterval)`,
+      )
+      await Utils.sleep(updateIntervalSeconds)
+    }
+  } else {
+    await pushOracleDataOnce(
+      logLevel,
+      oracleContractAddress,
+      medianizerContractAddress,
+      pusherPrivateKey,
+      tezosNodeURL
+    )
+  }
+}
+
+/**
+ * Push oracle data to a normalizer contract exactly once..
+ *
+ * @param logLevel The level at which to log output.
+ * @param oracleContractAddress The address of the oracle contract.
+ * @param medianizerContractAddress The address of the medianizer contract.
+ * @param pusherPrivateKey The base58check encoded private key of the pusher. This account will pay transaction fees.
+ * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
+ */
+export async function pushOracleDataOnce(
+  logLevel: LogLevel,
+  oracleContractAddress: string,
+  medianizerContractAddress: string,
+  pusherPrivateKey: string,
+  tezosNodeURL: string,
+): Promise<void> {
 
   try {
     Utils.print(`Pushing data from oracle located at: ${oracleContractAddress}`)
