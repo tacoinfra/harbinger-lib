@@ -26,8 +26,6 @@ export default class OperationFeeEstimator {
   public async estimateAndApplyFees(
     transactions: Array<StackableOperation>,
   ): Promise<Array<StackableOperation>> {
-    console.log("Transactions " + JSON.stringify(transactions))
-
     // Set a zero fee on each transaction.
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i]
@@ -37,17 +35,12 @@ export default class OperationFeeEstimator {
     }
     console.log("Transactions " + JSON.stringify(transactions))
 
-    // Estimate each operation while keeping track of totals.
-    var totalGasUsed = 0
-    var totalStorageUsed = 0
+    // Estimate each operation.
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i]
-      console.log("Estimating transaction " + i)
-      console.log("Transactions " + JSON.stringify(transactions))
-      console.log("Transcation: " + JSON.stringify(transaction))
 
-
-      // Estimate resources used in prior transactions.
+      // Estimate resources used in the set of prior transactions.
+      // If there were no prior transactions, set resource usage to 0.
       let priorConsumedResources = {
         gas: 0,
         storageCost: 0
@@ -60,54 +53,37 @@ export default class OperationFeeEstimator {
           ...priorTransactions,
         )
       }
-      console.log("Previous estimates")
-      console.log("Gas: " + priorConsumedResources.gas)
-      console.log("Storage: " + priorConsumedResources.storageCost)
 
       // Estimate resources for everything up to the current transaction.
+      // Newer transactions may depend on previous transactions, thus all transactions
+      // must be estimated.
       const currentTransactions = transactions.slice(0, i+1)
       const currentConsumedResources = await TezosNodeWriter.estimateOperation(
         this.tezosNodeUrl,
         'main',
         ...currentTransactions,
       )
-      console.log("Current estimates")
-      console.log("Gas: " + currentConsumedResources.gas)
-      console.log("Storage: " + currentConsumedResources.storageCost)
-      console.log("")
 
-
-      // Estimate a delta.
+      // Find the actual transaction cost by calculating the delta between the two 
+      // transactions resource usages.
       const gasLimitDelta = currentConsumedResources.gas - priorConsumedResources.gas
       const storageLimitDelta = currentConsumedResources.storageCost - priorConsumedResources.storageCost
-      console.log("Delta estimates")
-      console.log("Gas: " + gasLimitDelta)
-      console.log("Storage: " + storageLimitDelta)
-      console.log("")
 
       // Apply safety margins.
       const gasWithSafetyMargin =
         gasLimitDelta + Constants.gasSafetyMargin
       let storageWithSafetyMargin =
          storageLimitDelta + Constants.storageSafetyMargin
-         console.log("Safety Margin estimates")
-         console.log("Gas: " + gasLimitDelta)
-         console.log("Storage: " + storageWithSafetyMargin)
-         console.log("")
-
 
       // Origination operations require an additional storage burn.
+      // Apply an additional burn cost if needed.
       if (transaction.kind === 'origination') {
-        console.log("Burning")
         storageWithSafetyMargin += Constants.originationBurnCost
       }
       
-      // Apply gas and storage to the operation, causing a mutation.
+      // Apply gas and storage to the operation, mutating the operation.
       transaction.storage_limit = `${storageWithSafetyMargin}`
       transaction.gas_limit = `${gasWithSafetyMargin}`
-
-      totalGasUsed += gasWithSafetyMargin
-      totalStorageUsed += storageWithSafetyMargin
     }
 
     // Grab the block head so we have constant sizes.
