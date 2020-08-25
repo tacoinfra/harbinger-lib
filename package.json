@@ -32,7 +32,7 @@
     "aws-sdk": "^2.722.0",
     "blakejs": "^1.1.0",
     "bs58check": "^2.1.2",
-    "conseiljs": "5.0.4-beta.1",
+    "conseiljs": "5.0.4",
     "conseiljs-softsigner": "5.0.3-beta.0",
     "libsodium-wrappers": "^0.7.6",
     "loglevel": "^1.6.8",
