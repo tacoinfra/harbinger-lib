@@ -23,7 +23,7 @@
     "@lapo/asn1js": "1.1.0",
     "@ledgerhq/hw-transport": "^5.15.0",
     "@ledgerhq/hw-transport-node-hid": "^5.16.0",
-    "@tacoinfra/conseil-kms": "^1.0.0",
+    "@tacoinfra/conseil-kms": "^1.1.0",
     "@types/libsodium-wrappers": "^0.7.7",
     "@types/node": "^14.0.6",
     "@types/node-fetch": "^2.5.7",
