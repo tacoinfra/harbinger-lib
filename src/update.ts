@@ -55,6 +55,7 @@ interface OracleData {
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
+ * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  */
 export default async function updateOracleFromCoinbase(
   logLevel: LogLevel,
@@ -67,6 +68,7 @@ export default async function updateOracleFromCoinbase(
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
+  enableZeroFees: boolean = false
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -97,6 +99,7 @@ export default async function updateOracleFromCoinbase(
         signer,
         tezosNodeURL,
         normalizerContractAddress,
+        enableZeroFees
       )
 
       Utils.print(
@@ -116,6 +119,7 @@ export default async function updateOracleFromCoinbase(
       signer,
       tezosNodeURL,
       normalizerContractAddress,
+      enableZeroFees
     )
   }
 }
@@ -133,6 +137,7 @@ export default async function updateOracleFromCoinbase(
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
+ * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  * @returns The operation hash.
  */
 export async function updateOracleFromCoinbaseOnce(
@@ -146,6 +151,7 @@ export async function updateOracleFromCoinbaseOnce(
   signer: Signer,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
+  enableZeroFees: boolean = false
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -154,9 +160,9 @@ export async function updateOracleFromCoinbaseOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
       )
     }
     Utils.print('')
@@ -190,7 +196,7 @@ export async function updateOracleFromCoinbaseOnce(
       operations.push(normalizerPushOperation)
     }
 
-    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL)
+    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL, enableZeroFees)
     const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
       operations,
     )
@@ -226,6 +232,7 @@ export async function updateOracleFromCoinbaseOnce(
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
+ * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  */
 export async function updateOracleFromFeed(
   logLevel: LogLevel,
@@ -236,6 +243,7 @@ export async function updateOracleFromFeed(
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
+  enableZeroFees: boolean = false
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -264,6 +272,7 @@ export async function updateOracleFromFeed(
         signer,
         tezosNodeURL,
         normalizerContractAddress,
+        enableZeroFees
       )
 
       Utils.print(
@@ -281,6 +290,7 @@ export async function updateOracleFromFeed(
       signer,
       tezosNodeURL,
       normalizerContractAddress,
+      enableZeroFees
     )
   }
 }
@@ -296,6 +306,7 @@ export async function updateOracleFromFeed(
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
+ * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  * @returns The operation hash.
  */
 export async function updateOracleFromFeedOnce(
@@ -307,6 +318,7 @@ export async function updateOracleFromFeedOnce(
   signer: Signer,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
+  enableZeroFees: boolean = false
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -315,9 +327,9 @@ export async function updateOracleFromFeedOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
       )
     }
     Utils.print('')
@@ -349,7 +361,7 @@ export async function updateOracleFromFeedOnce(
       operations.push(normalizerPushOperation)
     }
 
-    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL)
+    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL, enableZeroFees)
     const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
       operations,
     )
