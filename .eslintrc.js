@@ -19,13 +19,13 @@ module.exports = {
         browser: true, // Enable browser global variables
         node: true, // Enable node global variables & Node.js scoping
         es2020: true, // Add all ECMAScript 2020 globals and automatically set the ecmaVersion parser option to ES2020
-        mocha: true, // Add Mocha testing global variables
+        jest: true, // Add Jest testing global variables
     },
 
     plugins: [
         '@typescript-eslint', // Add some TypeScript specific rules, and disable rules covered by the typechecker
         'import', // Add rules that help validate proper imports
-        'mocha', // Add rules for writing better Mocha tests
+        'jest', // Add rules for writing better Jest tests
         'prettier', // Allows running prettier as an ESLint rule, and reporting differences as individual linting issues
     ],
 
@@ -42,8 +42,8 @@ module.exports = {
         'plugin:import/warnings',
         'plugin:import/typescript',
 
-        // Add rules for Mocha-specific syntax
-        'plugin:mocha/recommended',
+        // Add rules for Jest-specific syntax
+        'plugin:jest/recommended',
 
         // Add rules that specifically require type information using our tsconfig
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
@@ -62,9 +62,9 @@ module.exports = {
     overrides: [
         // Overrides for all test files
         {
-            files: 'test/**/*.ts',
+            files: '__tests__/**/*.ts',
             rules: {
-                // For our Mocha test files, the pattern has been to have unnamed functions
+                // For our just test files, the pattern has been to have unnamed functions
                 'func-names': 'off',
                 // Using non-null assertions (obj!.property) cancels the benefits of the strict null-checking mode, but these are test files, so we don't care.
                 '@typescript-eslint/no-non-null-assertion': 'off',

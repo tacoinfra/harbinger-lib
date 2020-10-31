@@ -12,8 +12,12 @@ import {
 export default class OperationFeeEstimator {
   /**
    * @param tezosNodeUrl The Tezos node to hit with RPCs.
+   * @param enableZeroFees If `true` then all operations are returned with zero fees. Default is `false`.
    */
-  public constructor(private readonly tezosNodeUrl: string) {}
+  public constructor(
+    private readonly tezosNodeUrl: string,
+    private readonly enableZeroFees: boolean = false,
+  ) {}
 
   /**
    * Set a fee and gas/storage limits on a group of operations.
@@ -42,7 +46,7 @@ export default class OperationFeeEstimator {
       // If there were no prior transactions, set resource usage to 0.
       let priorConsumedResources = {
         gas: 0,
-        storageCost: 0
+        storageCost: 0,
       }
       if (i !== 0) {
         const priorTransactions = transactions.slice(0, i)
@@ -56,30 +60,32 @@ export default class OperationFeeEstimator {
       // Estimate resources for everything up to the current transaction.
       // Newer transactions may depend on previous transactions, thus all transactions
       // must be estimated.
-      const currentTransactions = transactions.slice(0, i+1)
+      const currentTransactions = transactions.slice(0, i + 1)
       const currentConsumedResources = await TezosNodeWriter.estimateOperation(
         this.tezosNodeUrl,
         'main',
         ...currentTransactions,
       )
 
-      // Find the actual transaction cost by calculating the delta between the two 
+      // Find the actual transaction cost by calculating the delta between the two
       // transactions resource usages.
-      const gasLimitDelta = currentConsumedResources.gas - priorConsumedResources.gas
-      const storageLimitDelta = currentConsumedResources.storageCost - priorConsumedResources.storageCost
+      const gasLimitDelta =
+        currentConsumedResources.gas - priorConsumedResources.gas
+      const storageLimitDelta =
+        currentConsumedResources.storageCost -
+        priorConsumedResources.storageCost
 
       // Apply safety margins.
-      const gasWithSafetyMargin =
-        gasLimitDelta + Constants.gasSafetyMargin
+      const gasWithSafetyMargin = gasLimitDelta + Constants.gasSafetyMargin
       let storageWithSafetyMargin =
-         storageLimitDelta + Constants.storageSafetyMargin
+        storageLimitDelta + Constants.storageSafetyMargin
 
       // Origination operations require an additional storage burn.
       // Apply an additional burn cost if needed.
       if (transaction.kind === 'origination') {
         storageWithSafetyMargin += Constants.originationBurnCost
       }
-      
+
       // Apply gas and storage to the operation, mutating the operation.
       transaction.storage_limit = `${storageWithSafetyMargin}`
       transaction.gas_limit = `${gasWithSafetyMargin}`
@@ -90,6 +96,11 @@ export default class OperationFeeEstimator {
       this.tezosNodeUrl,
       0,
     )
+
+    // If `enableZeroFees` then just return transactions with correct storage and gas limits without applying a fee.
+    if (this.enableZeroFees) {
+      return transactions
+    }
 
     // Loop until the operations have a high enough fee to cover their minimum.
     let requiredFee = this.calculateRequiredFee(transactions, blockHead)
