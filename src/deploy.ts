@@ -71,19 +71,16 @@ function makeNormalizerStorage(
   numDataPoints: number,
   oracleContractAddress: string,
 ) {
-  const assetNameParam = assetNames.reduce(
-    (previous, current) => {
-      return previous + `"${current}"; `
-     },
-    ''
-  )
+  const assetNameParam = assetNames.reduce((previous, current) => {
+    return previous + `"${current}"; `
+  }, '')
 
-  const assetValuesParam = assetNames.reduce(
-    (previous, current) => {
-      return previous + `Elt "${current}" (Pair (Pair 0 "0") (Pair (Pair (Pair 0 -1) (Pair {Elt 0 0} 0)) (Pair (Pair 0 -1) (Pair {Elt 0 0} 0))));`
-    },
-    ''
-  )
+  const assetValuesParam = assetNames.reduce((previous, current) => {
+    return (
+      previous +
+      `Elt "${current}" (Pair (Pair 0 "0") (Pair (Pair (Pair 0 -1) (Pair {Elt 0 0} 0)) (Pair (Pair 0 -1) (Pair {Elt 0 0} 0))));`
+    )
+  }, '')
 
   return `(Pair (Pair {${assetNameParam}} {${assetValuesParam}}) (Pair ${numDataPoints} "${oracleContractAddress}"))`
 }

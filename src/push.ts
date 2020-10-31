@@ -43,7 +43,7 @@ export default async function pushOracleData(
         oracleContractAddress,
         normalizerContractAddress,
         pusherPrivateKey,
-        tezosNodeURL
+        tezosNodeURL,
       )
 
       Utils.print(
@@ -57,7 +57,7 @@ export default async function pushOracleData(
       oracleContractAddress,
       normalizerContractAddress,
       pusherPrivateKey,
-      tezosNodeURL
+      tezosNodeURL,
     )
   }
 }
@@ -78,7 +78,6 @@ export async function pushOracleDataOnce(
   pusherPrivateKey: string,
   tezosNodeURL: string,
 ): Promise<void> {
-
   try {
     Utils.print(`Pushing data from oracle located at: ${oracleContractAddress}`)
     Utils.print(`To: ${normalizerContractAddress}`)
