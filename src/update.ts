@@ -68,7 +68,7 @@ export default async function updateOracleFromCoinbase(
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees: boolean = false
+  enableZeroFees = false,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -99,7 +99,7 @@ export default async function updateOracleFromCoinbase(
         signer,
         tezosNodeURL,
         normalizerContractAddress,
-        enableZeroFees
+        enableZeroFees,
       )
 
       Utils.print(
@@ -119,7 +119,7 @@ export default async function updateOracleFromCoinbase(
       signer,
       tezosNodeURL,
       normalizerContractAddress,
-      enableZeroFees
+      enableZeroFees,
     )
   }
 }
@@ -151,7 +151,7 @@ export async function updateOracleFromCoinbaseOnce(
   signer: Signer,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees: boolean = false
+  enableZeroFees = false,
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -160,9 +160,9 @@ export async function updateOracleFromCoinbaseOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+          assetNames.reduce((previousValue, assetName) => {
+            return previousValue + assetName + ', '
+          }, ''),
       )
     }
     Utils.print('')
@@ -196,7 +196,10 @@ export async function updateOracleFromCoinbaseOnce(
       operations.push(normalizerPushOperation)
     }
 
-    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL, enableZeroFees)
+    const operationFeeEstimator = new OperationFeeEstimator(
+      tezosNodeURL,
+      enableZeroFees,
+    )
     const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
       operations,
     )
@@ -243,7 +246,7 @@ export async function updateOracleFromFeed(
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees: boolean = false
+  enableZeroFees = false,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -272,7 +275,7 @@ export async function updateOracleFromFeed(
         signer,
         tezosNodeURL,
         normalizerContractAddress,
-        enableZeroFees
+        enableZeroFees,
       )
 
       Utils.print(
@@ -290,7 +293,7 @@ export async function updateOracleFromFeed(
       signer,
       tezosNodeURL,
       normalizerContractAddress,
-      enableZeroFees
+      enableZeroFees,
     )
   }
 }
@@ -318,7 +321,7 @@ export async function updateOracleFromFeedOnce(
   signer: Signer,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees: boolean = false
+  enableZeroFees = false,
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -327,9 +330,9 @@ export async function updateOracleFromFeedOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+          assetNames.reduce((previousValue, assetName) => {
+            return previousValue + assetName + ', '
+          }, ''),
       )
     }
     Utils.print('')
@@ -361,7 +364,10 @@ export async function updateOracleFromFeedOnce(
       operations.push(normalizerPushOperation)
     }
 
-    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL, enableZeroFees)
+    const operationFeeEstimator = new OperationFeeEstimator(
+      tezosNodeURL,
+      enableZeroFees,
+    )
     const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
       operations,
     )
