@@ -46,9 +46,6 @@ interface OracleData {
  * Update the Oracle from Coinbase.
  *
  * @param logLevel The level at which to log output.
- * @param apiKeyID The ID of the Coinbase Pro API key to use.
- * @param apiSecret The secret for the Coinbase Pro API key.
- * @param apiPassphrase The passphrase for the Coinbase API key.
  * @param oracleContractAddress The address of the oracle contract.
  * @param assetNames An array of asset names to update in the oracle contract.
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
@@ -88,11 +85,9 @@ export default async function updateOracleFromCoinbase(
     // Loop indefinitely, updating the oracle and then sleeping for the update interval.
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      await updateOracleFromCoinbaseOnce(
+      const options = { apiKeyID, apiSecret, apiPassphrase }
+      await updateOracleFromFeedOnce(
         logLevel,
-        apiKeyID,
-        apiSecret,
-        apiPassphrase,
         oracleContractAddress,
         assetNames,
         keyStore,
@@ -100,6 +95,7 @@ export default async function updateOracleFromCoinbase(
         tezosNodeURL,
         normalizerContractAddress,
         enableZeroFees,
+        options,
       )
 
       Utils.print(
@@ -108,11 +104,9 @@ export default async function updateOracleFromCoinbase(
       await Utils.sleep(updateIntervalSeconds)
     }
   } else {
-    await updateOracleFromCoinbaseOnce(
+    const options = { apiKeyID, apiSecret, apiPassphrase }
+    await updateOracleFromFeedOnce(
       logLevel,
-      apiKeyID,
-      apiSecret,
-      apiPassphrase,
       oracleContractAddress,
       assetNames,
       keyStore,
@@ -120,107 +114,8 @@ export default async function updateOracleFromCoinbase(
       tezosNodeURL,
       normalizerContractAddress,
       enableZeroFees,
+      options,
     )
-  }
-}
-
-/**
- * Update the oracle service from Coinbase exactly once.
- *
- * @param logLevel The level at which to log output.
- * @param apiKeyID The ID of the Coinbase Pro API key to use.
- * @param apiSecret The secret for the Coinbase Pro API key.
- * @param apiPassphrase The passphrase for the Coinbase API key.
- * @param oracleContractAddress The address of the oracle contract.
- * @param assetNames An array of asset names to include in the oracle. The asset names must be in alphabetical order.
- * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
- * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
- * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
- * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
- * @returns The operation hash.
- */
-export async function updateOracleFromCoinbaseOnce(
-  logLevel: LogLevel,
-  apiKeyID: string,
-  apiSecret: string,
-  apiPassphrase: string,
-  oracleContractAddress: string,
-  assetNames: Array<string>,
-  keyStore: KeyStore,
-  signer: Signer,
-  tezosNodeURL: string,
-  normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees = false,
-): Promise<string> {
-  try {
-    await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
-
-    Utils.print('Updating oracle located at: ' + oracleContractAddress)
-    if (logLevel == LogLevel.Debug) {
-      Utils.print(
-        'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
-      )
-    }
-    Utils.print('')
-
-    const counter = await TezosNodeReader.getCounterForAccount(
-      tezosNodeURL,
-      keyStore.publicKeyHash,
-    )
-    const operations: Array<Transaction> = []
-    const operation = await makeUpdateOperationFromCoinbase(
-      logLevel,
-      apiKeyID,
-      apiSecret,
-      apiPassphrase,
-      assetNames,
-      keyStore,
-      oracleContractAddress,
-      counter + 1,
-    )
-    operations.push(operation)
-
-    // Push an operation to the normalizer if an address was provided.
-    if (normalizerContractAddress !== undefined) {
-      const normalizerPushOperation = constructPushOperation(
-        logLevel,
-        keyStore,
-        counter + 2,
-        oracleContractAddress,
-        normalizerContractAddress,
-      )
-      operations.push(normalizerPushOperation)
-    }
-
-    const operationFeeEstimator = new OperationFeeEstimator(
-      tezosNodeURL,
-      enableZeroFees,
-    )
-    const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
-      operations,
-    )
-
-    const nodeResult = await TezosNodeWriter.sendOperation(
-      tezosNodeURL,
-      operationsWithFees,
-      signer,
-    )
-
-    const hash = nodeResult.operationGroupID.replace(/"/g, '')
-    Utils.print('Update sent with hash: ' + hash)
-    return hash
-  } catch (error) {
-    Utils.print('Error occurred while trying to update.')
-    if (logLevel == LogLevel.Debug) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Utils.print(error.message)
-    }
-    Utils.print('')
-    return ''
   }
 }
 
@@ -228,7 +123,6 @@ export async function updateOracleFromCoinbaseOnce(
  * Update the Oracle from a URL.
  *
  * @param logLevel The level at which to log output.
- * @param oracleFeedURL A URL which will serve the Oracle's data feed.
  * @param oracleContractAddress The address of the oracle contract.
  * @param assetNames An array of asset names to update in the oracle contract.
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
@@ -236,6 +130,11 @@ export async function updateOracleFromCoinbaseOnce(
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
  * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
+ * @param options An object consisting of options to determine which oracle updater methods to use.
+ * optional @param oracleFeedURL A URL which will serve the Oracle's data feed.
+ * optional @param apiKeyID The ID of the Coinbase Pro API key to use.
+ * optional @param apiSecret The secret for the Coinbase Pro API key.
+ * optional @param apiPassphrase The passphrase for the Coinbase API key.
  */
 export async function updateOracleFromFeed(
   logLevel: LogLevel,
@@ -247,6 +146,12 @@ export async function updateOracleFromFeed(
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
   enableZeroFees = false,
+  options: {
+    oracleFeedURL?: string
+    apiKeyID?: string
+    apiSecret?: string
+    apiPassphrase?: string
+  },
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
@@ -266,9 +171,9 @@ export async function updateOracleFromFeed(
     // Loop indefinitely, updating the oracle and then sleeping for the update interval.
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      const options = { oracleFeedURL }
       await updateOracleFromFeedOnce(
         logLevel,
-        oracleFeedURL,
         oracleContractAddress,
         assetNames,
         keyStore,
@@ -276,6 +181,7 @@ export async function updateOracleFromFeed(
         tezosNodeURL,
         normalizerContractAddress,
         enableZeroFees,
+        options,
       )
 
       Utils.print(
@@ -284,9 +190,9 @@ export async function updateOracleFromFeed(
       await Utils.sleep(updateIntervalSeconds)
     }
   } else {
+    const options = { oracleFeedURL }
     await updateOracleFromFeedOnce(
       logLevel,
-      oracleFeedURL,
       oracleContractAddress,
       assetNames,
       keyStore,
@@ -294,6 +200,7 @@ export async function updateOracleFromFeed(
       tezosNodeURL,
       normalizerContractAddress,
       enableZeroFees,
+      options,
     )
   }
 }
@@ -302,7 +209,6 @@ export async function updateOracleFromFeed(
  * Update the Oracle from a URL exactly once.
  *
  * @param logLevel The level at which to log output.
- * @param oracleFeedURL A URL which will serve the Oracle's data feed.
  * @param oracleContractAddress The address of the oracle contract.
  * @param assetNames An array of asset names to include in the oracle. The asset names must be in alphabetical order.
  * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
@@ -310,11 +216,15 @@ export async function updateOracleFromFeed(
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
  * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
+ * @param options An object consisting of options to determine which oracle updater methods to use.
+ * optional @param oracleFeedURL A URL which will serve the Oracle's data feed.
+ * optional @param apiKeyID The ID of the Coinbase Pro API key to use.
+ * optional @param apiSecret The secret for the Coinbase Pro API key.
+ * optional @param apiPassphrase The passphrase for the Coinbase API key.
  * @returns The operation hash.
  */
 export async function updateOracleFromFeedOnce(
   logLevel: LogLevel,
-  oracleFeedURL: string,
   oracleContractAddress: string,
   assetNames: Array<string>,
   keyStore: KeyStore,
@@ -322,6 +232,12 @@ export async function updateOracleFromFeedOnce(
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
   enableZeroFees = false,
+  options: {
+    oracleFeedURL?: string
+    apiKeyID?: string
+    apiSecret?: string
+    apiPassphrase?: string
+  },
 ): Promise<string> {
   try {
     await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
@@ -342,14 +258,30 @@ export async function updateOracleFromFeedOnce(
       keyStore.publicKeyHash,
     )
     const operations: Array<Transaction> = []
-    const operation = await makeUpdateOperationFromFeed(
-      logLevel,
-      oracleFeedURL,
-      assetNames,
-      keyStore,
-      oracleContractAddress,
-      counter + 1,
-    )
+    let operation
+    if (options.oracleFeedURL) {
+      operation = await makeUpdateOperationFromFeed(
+        logLevel,
+        options.oracleFeedURL,
+        assetNames,
+        keyStore,
+        oracleContractAddress,
+        counter + 1,
+      )
+    } else {
+      const { apiKeyID, apiSecret, apiPassphrase } = options
+      operation = await makeUpdateOperationFromCoinbase(
+        logLevel,
+        apiKeyID as string,
+        apiSecret as string,
+        apiPassphrase as string,
+        assetNames,
+        keyStore,
+        oracleContractAddress,
+        counter + 1,
+      )
+    }
+
     operations.push(operation)
 
     // Push an operation to the normalizer if an address was provided.
