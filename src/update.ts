@@ -39,86 +39,6 @@ interface OracleData {
   signatures: Array<string>
 }
 
-// TODO(keefertaylor): The code in this file is duplicated across Coinbase and non-coinbase
-//                     updates. Consider strategies to deduplicate.
-
-/**
- * Update the Oracle from Coinbase.
- *
- * @param logLevel The level at which to log output.
- * @param oracleContractAddress The address of the oracle contract.
- * @param assetNames An array of asset names to update in the oracle contract.
- * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
- * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
- * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
- * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
- */
-export default async function updateOracleFromCoinbase(
-  logLevel: LogLevel,
-  apiKeyID: string,
-  apiSecret: string,
-  apiPassphrase: string,
-  oracleContractAddress: string,
-  assetNames: Array<string>,
-  posterPrivateKey: string,
-  updateIntervalSeconds: number | undefined,
-  tezosNodeURL: string,
-  normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees = false,
-): Promise<void> {
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Using node located at: ' + tezosNodeURL)
-    Utils.print('')
-  }
-
-  // Generate a keystore.
-  const keyStore = await Utils.keyStoreFromPrivateKey(posterPrivateKey)
-  const signer = await Utils.signerFromKeyStore(keyStore)
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Updating from account: ' + keyStore.publicKeyHash)
-    Utils.print('')
-  }
-
-  // Loop updates if needed.
-  if (updateIntervalSeconds) {
-    // Loop indefinitely, updating the oracle and then sleeping for the update interval.
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const options = { apiKeyID, apiSecret, apiPassphrase }
-      await updateOracleFromFeedOnce(
-        logLevel,
-        oracleContractAddress,
-        assetNames,
-        keyStore,
-        signer,
-        tezosNodeURL,
-        normalizerContractAddress,
-        enableZeroFees,
-        options,
-      )
-
-      Utils.print(
-        `Waiting ${updateIntervalSeconds} seconds to do next update. (Customize with --update-interval)`,
-      )
-      await Utils.sleep(updateIntervalSeconds)
-    }
-  } else {
-    const options = { apiKeyID, apiSecret, apiPassphrase }
-    await updateOracleFromFeedOnce(
-      logLevel,
-      oracleContractAddress,
-      assetNames,
-      keyStore,
-      signer,
-      tezosNodeURL,
-      normalizerContractAddress,
-      enableZeroFees,
-      options,
-    )
-  }
-}
-
 /**
  * Update the Oracle from a URL.
  *
@@ -171,7 +91,6 @@ export async function updateOracleFromFeed(
     // Loop indefinitely, updating the oracle and then sleeping for the update interval.
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const options = { oracleFeedURL }
       await updateOracleFromFeedOnce(
         logLevel,
         oracleContractAddress,
