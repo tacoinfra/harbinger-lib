@@ -58,7 +58,6 @@ interface OracleData {
  */
 export async function updateOracleFromFeed(
   logLevel: LogLevel,
-  oracleFeedURL: string,
   oracleContractAddress: string,
   assetNames: Array<string>,
   posterPrivateKey: string,
@@ -109,7 +108,6 @@ export async function updateOracleFromFeed(
       await Utils.sleep(updateIntervalSeconds)
     }
   } else {
-    const options = { oracleFeedURL }
     await updateOracleFromFeedOnce(
       logLevel,
       oracleContractAddress,
@@ -177,29 +175,15 @@ export async function updateOracleFromFeedOnce(
       keyStore.publicKeyHash,
     )
     const operations: Array<Transaction> = []
-    let operation
-    if (options.oracleFeedURL) {
-      operation = await makeUpdateOperationFromFeed(
-        logLevel,
-        options.oracleFeedURL,
-        assetNames,
-        keyStore,
-        oracleContractAddress,
-        counter + 1,
-      )
-    } else {
-      const { apiKeyID, apiSecret, apiPassphrase } = options
-      operation = await makeUpdateOperationFromCoinbase(
-        logLevel,
-        apiKeyID as string,
-        apiSecret as string,
-        apiPassphrase as string,
-        assetNames,
-        keyStore,
-        oracleContractAddress,
-        counter + 1,
-      )
-    }
+
+    const operation = await makeUpdateOperationFromFeed(
+      logLevel,
+      assetNames,
+      keyStore,
+      oracleContractAddress,
+      counter + 1,
+      options,
+    )
 
     operations.push(operation)
 
@@ -244,100 +228,37 @@ export async function updateOracleFromFeedOnce(
 }
 
 /**
- * Make an update operation from Coinbase.
- *
- * @param logLevel The log level to use.
- * @param apiKeyID The ID of the Coinbase Pro API key to use.
- * @param apiSecret The secret for the Coinbase Pro API key.
- * @param apiPassphrase The passphrase for the Coinbase API key.
- * @param assetNames The assets to update.
- * @param keystore The keystore to use for the update operation.
- * @param tezosNodeURL The tezos node url to use.
- * @param oracleContractAddress The contract address to use.
- * @param counter The counter to use.
- */
-async function makeUpdateOperationFromCoinbase(
-  logLevel: LogLevel,
-  apiKeyID: string,
-  apiSecret: string,
-  apiPassphrase: string,
-  assetNames: Array<string>,
-  keystore: KeyStore,
-  oracleContractAddress: string,
-  counter: number,
-): Promise<Transaction> {
-  // Retrieve elements from the oracle data.
-  const oracleData = await retrieveOracleDataFromCoinbase(
-    apiKeyID,
-    apiSecret,
-    apiPassphrase,
-  )
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Received oracle data: ')
-    Utils.print(oracleData)
-    Utils.print('')
-  }
-
-  // Iterate through keys and create Elts.
-  const elements = assetNames.map((assetName) => {
-    const element = listElementForAsset(oracleData, assetName)
-    if (!element) {
-      Utils.print('Unable to locate data for ' + assetName + ' in Oracle data')
-      Utils.print('Aborting.')
-      process.exit(1)
-    }
-    return element
-  })
-
-  // Make the update parameter.
-  const elementString = elements
-    .reduce((previousValue, element) => {
-      return previousValue + element + ';'
-    }, '')
-    .replace(/'/g, '"')
-  const parameter = `{${elementString}}`
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Made parameter: ')
-    Utils.print(parameter)
-    Utils.print('')
-  }
-
-  const entrypoint = 'update'
-  return TezosNodeWriter.constructContractInvocationOperation(
-    keystore.publicKeyHash,
-    counter,
-    oracleContractAddress,
-    0,
-    0,
-    Constants.storageLimit,
-    Constants.gasLimit,
-    entrypoint,
-    parameter,
-    TezosParameterFormat.Michelson,
-  )
-}
-
-/**
  * Make an update operation from a feed.
  *
  * @param logLevel The log level to use.
- * @param oracleFeedURL A URL which will serve the Oracle's data feed.
  * @param assetNames The assets to update.
  * @param keystore The keystore to use for the update operation.
  * @param tezosNodeURL The tezos node url to use.
  * @param oracleContractAddress The contract address to use.
  * @param counter The counter to use.
+ * @param options An object consisting of options to determine which oracle updater methods to use.
+ * optional @param oracleFeedURL A URL which will serve the Oracle's data feed.
+ * optional @param apiKeyID The ID of the Coinbase Pro API key to use.
+ * optional @param apiSecret The secret for the Coinbase Pro API key.
+ * optional @param apiPassphrase The passphrase for the Coinbase API key.
  */
 async function makeUpdateOperationFromFeed(
   logLevel: LogLevel,
-  oracleFeedURL: string,
   assetNames: Array<string>,
   keystore: KeyStore,
   oracleContractAddress: string,
   counter: number,
+  options: {
+    oracleFeedURL?: string
+    apiKeyID?: string
+    apiSecret?: string
+    apiPassphrase?: string
+  },
 ): Promise<Transaction> {
   // Retrieve elements from the oracle data.
-  const oracleData = await retrieveOracleDataFromFeed(oracleFeedURL)
+
+  const oracleData = await retrieveOracleDataFromFeed(options)
+
   if (logLevel == LogLevel.Debug) {
     Utils.print('Received oracle data: ')
     Utils.print(oracleData)
@@ -386,59 +307,51 @@ async function makeUpdateOperationFromFeed(
 /**
  * Retrieve oracle data from an oracle feed.
  *
- * @param oracleFeedURL The URL for the Oracle data feed.
+ * @param options An object consisting of options to determine which oracle updater methods to use.
+ * optional @param oracleFeedURL A URL which will serve the Oracle's data feed.
+ * optional @param apiKeyID The ID of the Coinbase Pro API key to use.
+ * optional @param apiSecret The secret for the Coinbase Pro API key.
+ * optional @param apiPassphrase The passphrase for the Coinbase API key.
  * @return The oracle data.
  */
-async function retrieveOracleDataFromFeed(oracleFeedURL: string): Promise<any> {
-  const oracleDataRaw = await WebRequest.get(oracleFeedURL, {
-    headers: {
-      'User-Agent': 'harbinger',
-      accept: 'json',
-    },
-  })
+async function retrieveOracleDataFromFeed(options: {
+  oracleFeedURL?: string
+  apiKeyID?: string
+  apiSecret?: string
+  apiPassphrase?: string
+}): Promise<any> {
+  let oracleDataRaw
+  if (options.oracleFeedURL) {
+    const { oracleFeedURL } = options
+    oracleDataRaw = await WebRequest.get(oracleFeedURL, {
+      headers: {
+        'User-Agent': 'harbinger',
+        accept: 'json',
+      },
+    })
+  } else {
+    const { apiKeyID, apiSecret, apiPassphrase } = options
+    const apiURL = 'https://api.pro.coinbase.com'
+    const requestPath = '/oracle/xtz'
+    const timestamp = Date.now() / 1000
+    const method = 'GET'
+    const what = `${timestamp}${method}${requestPath}`
+    const secretKey = Buffer.from(apiSecret, 'base64')
+    const hmac = crypto.createHmac('sha256', secretKey)
+    const signature = hmac.update(what).digest('base64')
 
-  if (oracleDataRaw.statusCode != 200) {
-    throw new Error(
-      `Failed to retrieve oracle data!\n${oracleDataRaw.statusCode}: ${oracleDataRaw.content}`,
-    )
+    const oracleURL = apiURL + requestPath
+    oracleDataRaw = await WebRequest.get(oracleURL, {
+      headers: {
+        'User-Agent': 'harbinger',
+        'CB-ACCESS-KEY': apiKeyID,
+        'CB-ACCESS-SIGN': signature,
+        'CB-ACCESS-TIMESTAMP': timestamp,
+        'CB-ACCESS-PASSPHRASE': apiPassphrase,
+        accept: 'json',
+      },
+    })
   }
-  const oracleData = JSON.parse(oracleDataRaw.content)
-  return parseRawOracleData(oracleData)
-}
-
-/**
- * Retrieve oracle data from Coinbase Pro.
- *
- * @param apiKeyID The ID of the Coinbase Pro API key to use.
- * @param apiSecret The secret for the Coinbase Pro API key.
- * @param apiPassphrase The passphrase for the Coinbase API key.
- * @return The oracle data.
- */
-async function retrieveOracleDataFromCoinbase(
-  apiKeyID: string,
-  apiSecret: string,
-  apiPassphrase: string,
-): Promise<any> {
-  const apiURL = 'https://api.pro.coinbase.com'
-  const requestPath = '/oracle/xtz'
-  const timestamp = Date.now() / 1000
-  const method = 'GET'
-  const what = `${timestamp}${method}${requestPath}`
-  const secretKey = Buffer.from(apiSecret, 'base64')
-  const hmac = crypto.createHmac('sha256', secretKey)
-  const signature = hmac.update(what).digest('base64')
-
-  const oracleURL = apiURL + requestPath
-  const oracleDataRaw = await WebRequest.get(oracleURL, {
-    headers: {
-      'User-Agent': 'harbinger',
-      'CB-ACCESS-KEY': apiKeyID,
-      'CB-ACCESS-SIGN': signature,
-      'CB-ACCESS-TIMESTAMP': timestamp,
-      'CB-ACCESS-PASSPHRASE': apiPassphrase,
-      accept: 'json',
-    },
-  })
 
   if (oracleDataRaw.statusCode != 200) {
     throw new Error(
