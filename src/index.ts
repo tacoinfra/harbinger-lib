@@ -17,12 +17,7 @@ export function initOracleLib(conseilLogLevel: LogLevelDesc = 'error'): void {
   registerFetch(fetch)
 }
 
-export {
-  default as updateOracleFromCoinbase,
-  updateOracleFromCoinbaseOnce,
-  updateOracleFromFeed,
-  updateOracleFromFeedOnce,
-} from './update'
+export { updateOracleFromFeed, updateOracleFromFeedOnce } from './update'
 export { deployNormalizer, deployOracle } from './deploy'
 export { default as pushOracleData } from './push'
 export { LogLevel } from './common'
