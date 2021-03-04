@@ -87,13 +87,7 @@ export default async function get(
   Utils.print(`Low: ${normalizeDataPoint(Number(getValue(value, 4, 'int')))}`)
   Utils.print(`Close: ${normalizeDataPoint(Number(getValue(value, 5, 'int')))}`)
 
-  // Volume isn't nested in pairs so the helper can't be used.
-  const rawValue =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    value['args'][1]['args'][1]['args'][1]['args'][1]['args'][1]['args'][1][
-      'int'
-    ]
-  Utils.print(`Volume: ${normalizeDataPoint(Number(rawValue))}`)
+  Utils.print(`Volume: ${normalizeDataPoint(Number(getValue(value, 6, 'int')))}`)
 
   Utils.print('')
 }
@@ -106,12 +100,7 @@ export default async function get(
  * @param key The type of the value in the pair (ex. "string", "int")
  */
 function getValue(input: any, depth: number, key: string): any {
-  if (depth == 0) {
-    return input['args'][0][key]
-  }
-
-  const nested = input['args'][1]
-  return getValue(nested, depth - 1, key)
+  return input['args'][depth][key]
 }
 
 /**
