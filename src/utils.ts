@@ -78,7 +78,7 @@ const utils = {
    */
   async signerFromKeyStore(keyStore: KeyStore): Promise<Signer> {
     const bytes = TezosMessageUtils.writeKeyWithHint(keyStore.secretKey, 'edsk')
-    return await SoftSigner.createSigner(bytes, -1)
+    return await SoftSigner.createSigner(bytes)
   },
 
   /**
