@@ -1,6 +1,6 @@
 {
   "name": "@tacoinfra/harbinger-lib",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "Common typescript code which powers the CLI and Serverless updaters.",
   "main": "build/src/index.js",
   "files": [
@@ -32,7 +32,7 @@
     "blakejs": "^1.1.0",
     "bs58check": "^2.1.2",
     "conseiljs": "5.0.4",
-    "conseiljs-softsigner": "5.0.3-beta.0",
+    "conseiljs-softsigner": "^5.0.4",
     "libsodium-wrappers": "^0.7.8",
     "loglevel": "^1.7.0",
     "node-fetch": "^2.6.1",
