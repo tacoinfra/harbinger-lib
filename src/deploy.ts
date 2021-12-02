@@ -1,15 +1,8 @@
 import Utils from './utils'
 import { LogLevel } from './common'
-import {
-  TezosNodeWriter,
-  TezosNodeReader,
-  TezosParameterFormat,
-} from 'conseiljs'
 import fs = require('fs')
-import Constants from './constants'
-import OperationFeeEstimator from './operation-fee-estimator'
 import { OriginationOperation, TezosToolkit } from '@taquito/taquito'
-import { InMemorySigner } from "@taquito/signer";
+import { InMemorySigner } from '@taquito/signer'
 
 /** Filenames for contracts. */
 const NORMALIZER_CONTRACT_FILE = __dirname + '/normalizer.tz'
@@ -121,9 +114,9 @@ export async function deployOracle(
 
     const deployResult: OriginationOperation = await tezos.contract.originate({
       code: contract,
-      init: storage
+      init: storage,
     })
-    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+    Utils.print(`New Contract Address: ${deployResult.contractAddress!}`)
   } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
@@ -179,9 +172,9 @@ export async function deployNormalizer(
 
     const deployResult: OriginationOperation = await tezos.contract.originate({
       code: contract,
-      init: storage
+      init: storage,
     })
-    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+    Utils.print(`New Contract Address: ${deployResult.contractAddress!}`)
   } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
