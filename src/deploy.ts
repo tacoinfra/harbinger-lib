@@ -36,9 +36,9 @@ function makeOracleStorage(
   if (logLevel == LogLevel.Debug) {
     Utils.print(
       'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+      assetNames.reduce((previousValue, assetName) => {
+        return previousValue + assetName + ', '
+      }, ''),
     )
   }
   Utils.print('')
@@ -114,9 +114,15 @@ export async function deployOracle(
 
     const deployResult: OriginationOperation = await tezos.contract.originate({
       code: contract,
+<<<<<<< HEAD
       init: storage,
     })
     Utils.print(`New Contract Address: ${deployResult.contractAddress!}`)
+=======
+      init: storage
+    })
+    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+>>>>>>> origin/master
   } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
@@ -172,9 +178,15 @@ export async function deployNormalizer(
 
     const deployResult: OriginationOperation = await tezos.contract.originate({
       code: contract,
+<<<<<<< HEAD
       init: storage,
     })
     Utils.print(`New Contract Address: ${deployResult.contractAddress!}`)
+=======
+      init: storage
+    })
+    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+>>>>>>> origin/master
   } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
