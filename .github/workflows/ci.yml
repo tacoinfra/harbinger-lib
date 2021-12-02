@@ -9,7 +9,7 @@ jobs:
     - uses: actions/setup-node@v2
     - name: "Install Dependencies"
       run: |
-        sudo apt-get update && sudo apt-get install build-essential git libusb-1.0-0 libusb-1.0-0-dev libudev-dev libbluetooth-dev
+        sudo apt-get update && sudo apt-get install build-essential git libusb-1.0-0 libusb-1.0-0-dev libudev-dev bluetooth bluez libbluetooth-dev
     - name: "Build Lib"
       run: |
         npm i
