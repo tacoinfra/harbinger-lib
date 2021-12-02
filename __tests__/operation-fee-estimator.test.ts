@@ -16,15 +16,21 @@ import CONSTANTS from '../src/constants'
  */
 
 /** The node to connect to */
-const tezosNodeUrl = 'https://rpczero.tzbeta.net'
+const tezosNodeUrl = 'https://hangzhounet.smartpy.io'
 
-/** The account which will send operations. */
-const sourceAccount = 'tz1LpmZmB1yJJBcCrBDLSAStmmugGDEghdVv'
+/**
+ * The account which will send operations.
+ *
+ * This account is Alice from the Flextesa sandbox and should always have funds on a testnet.
+ * See: https://tezos.gitlab.io/flextesa/
+ */
+const sourceAccount = 'tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb'
 
 /**
  * Apply configuration for ConseilJS
  */
 const logger = getLogger('conseiljs')
+logger.setLevel('DEBUG', false)
 registerLogger(logger)
 registerFetch(fetch)
 
