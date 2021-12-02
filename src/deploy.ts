@@ -8,6 +8,8 @@ import {
 import fs = require('fs')
 import Constants from './constants'
 import OperationFeeEstimator from './operation-fee-estimator'
+import { OriginationOperation, TezosToolkit } from '@taquito/taquito'
+import { InMemorySigner } from "@taquito/signer";
 
 /** Filenames for contracts. */
 const NORMALIZER_CONTRACT_FILE = __dirname + '/normalizer.tz'
@@ -41,20 +43,20 @@ function makeOracleStorage(
   if (logLevel == LogLevel.Debug) {
     Utils.print(
       'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+      assetNames.reduce((previousValue, assetName) => {
+        return previousValue + assetName + ', '
+      }, ''),
     )
   }
   Utils.print('')
 
   const elementsString = elementsStringFromAssetName(assetNames)
   const storage = `
-    Pair 
+    (Pair 
         {
             ${elementsString}
         }
-        (Some "${signerPublicKey}")
+        (Some "${signerPublicKey}"))
 `
   return storage
 }
@@ -108,18 +110,21 @@ export async function deployOracle(
 
   try {
     Utils.print('Deploying an oracle contract.')
+
+    // Configure a Taquito instance
+    const signer = await InMemorySigner.fromSecretKey(deployerPrivateKey)
+    const tezos = new TezosToolkit(tezosNodeURL)
+    tezos.setProvider({ signer })
+
     const storage = makeOracleStorage(logLevel, assetNames, signerPublicKey)
     const contract = readContract(ORACLE_CONTRACT_FILE)
 
-    const addresses = await deploy(
-      logLevel,
-      deployerPrivateKey,
-      [contract],
-      [storage],
-      tezosNodeURL,
-    )
-    Utils.print('New Contract Address: ' + addresses[0])
-  } catch (error) {
+    const deployResult: OriginationOperation = await tezos.contract.originate({
+      code: contract,
+      init: storage
+    })
+    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+  } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -159,6 +164,11 @@ export async function deployNormalizer(
     Utils.print('Deploying a normalizer contract.')
     Utils.print('')
 
+    // Configure a Taquito instance
+    const signer = await InMemorySigner.fromSecretKey(deployerPrivateKey)
+    const tezos = new TezosToolkit(tezosNodeURL)
+    tezos.setProvider({ signer })
+
     // Prepare storage parameters.
     const storage = makeNormalizerStorage(
       assetNames,
@@ -167,15 +177,12 @@ export async function deployNormalizer(
     )
     const contract = readContract(NORMALIZER_CONTRACT_FILE)
 
-    const addresses = await deploy(
-      logLevel,
-      deployerPrivateKey,
-      [contract],
-      [storage],
-      tezosNodeURL,
-    )
-    Utils.print('New Contract Address: ' + addresses[0])
-  } catch (error) {
+    const deployResult: OriginationOperation = await tezos.contract.originate({
+      code: contract,
+      init: storage
+    })
+    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+  } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -183,81 +190,6 @@ export async function deployNormalizer(
     }
     Utils.print('')
   }
-}
-
-/**
- * Deploy one or more contracts.
- *
- * Note: The lengths of the contracts and storages arrays must be the same. This precondition is not checked.
- *
- * @param logLevel The level at which to log output.
- * @param deployerPrivateKey The base58check private key of the deployer, prefixed with 'edsk'. This account will pay origination fees.
- * @param contracts An array of contracts to deploy. Parrallel sorted to the storages parameter.
- * @param storages An array of storages to deploy. Parrallel sorted to the contracts parameter.
- * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
- * @returns An array of addresses for the deployed contracts.
- */
-async function deploy(
-  logLevel: LogLevel,
-  deployerPrivateKey: string,
-  contracts: Array<string>,
-  storages: Array<string>,
-  tezosNodeURL: string,
-): Promise<Array<string>> {
-  const keystore = await Utils.keyStoreFromPrivateKey(deployerPrivateKey)
-  const signer = await Utils.signerFromKeyStore(keystore)
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Deploying from account: ' + keystore.publicKeyHash)
-    Utils.print('')
-  }
-
-  await Utils.revealAccountIfNeeded(tezosNodeURL, keystore, signer)
-
-  const operations = []
-  let counter = await TezosNodeReader.getCounterForAccount(
-    tezosNodeURL,
-    keystore.publicKeyHash,
-  )
-  for (let i = 0; i < contracts.length; i++) {
-    const contract = contracts[i]
-    const storage = storages[i]
-    counter++
-
-    const operation = TezosNodeWriter.constructContractOriginationOperation(
-      keystore,
-      0,
-      undefined,
-      0,
-      Constants.storageLimit,
-      Constants.gasLimit,
-      contract,
-      storage,
-      TezosParameterFormat.Michelson,
-      counter,
-    )
-    operations.push(operation)
-  }
-  const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL)
-  const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
-    operations,
-  )
-
-  const nodeResult = await TezosNodeWriter.sendOperation(
-    tezosNodeURL,
-    operationsWithFees,
-    signer,
-  )
-  const operationHash = nodeResult.operationGroupID
-    .replace(/"/g, '')
-    .replace(/\n/, '')
-
-  Utils.print('Deployed in operation hash: ' + operationHash)
-
-  const contractAddresses = []
-  for (let i = 0; i < contracts.length; i++) {
-    contractAddresses.push(Utils.calculateContractAddress(operationHash, i))
-  }
-  return contractAddresses
 }
 
 /**

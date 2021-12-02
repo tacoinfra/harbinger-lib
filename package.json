@@ -1,6 +1,6 @@
 {
   "name": "@tacoinfra/harbinger-lib",
-  "version": "1.7.2",
+  "version": "2.0.0",
   "description": "Common typescript code which powers the CLI and Serverless updaters.",
   "main": "build/src/index.js",
   "files": [
@@ -24,6 +24,8 @@
     "@ledgerhq/hw-transport": "^5.28.0",
     "@ledgerhq/hw-transport-node-hid": "^5.28.0",
     "@tacoinfra/conseil-kms": "^1.1.1",
+    "@taquito/signer": "11.0.1",
+    "@taquito/taquito": "11.0.1",
     "@types/libsodium-wrappers": "^0.7.8",
     "@types/node": "^14.14.6",
     "@types/node-fetch": "^2.5.7",
@@ -38,7 +40,7 @@
     "node-fetch": "^2.6.1",
     "secp256k1": "^4.0.2",
     "ts-node": "^8.8.1",
-    "typescript": "^3.9.7",
+    "typescript": "^4.5.2",
     "web-request": "^1.0.7"
   },
   "bugs": {

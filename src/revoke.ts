@@ -82,7 +82,7 @@ export default async function revokeOracle(
         '',
       )}`,
     )
-  } catch (error) {
+  } catch (error: any) {
     Utils.print('Error occurred while trying to revoke.')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
