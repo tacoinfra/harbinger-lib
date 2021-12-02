@@ -52,11 +52,11 @@ function makeOracleStorage(
 
   const elementsString = elementsStringFromAssetName(assetNames)
   const storage = `
-    Pair 
+    (Pair 
         {
             ${elementsString}
         }
-        (Some "${signerPublicKey}")
+        (Some "${signerPublicKey}"))
 `
   return storage
 }
