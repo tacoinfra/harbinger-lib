@@ -118,7 +118,7 @@ export async function pushOracleDataOnce(
     Utils.print(
       `Push sent with hash: ${nodeResult.operationGroupID.replace(/"/g, '')}`,
     )
-  } catch (error) {
+  } catch (error: any) {
     Utils.print('Error occurred while trying to update.')
     if (logLevel == LogLevel.Debug) {
       Utils.print(error)

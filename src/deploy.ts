@@ -8,6 +8,8 @@ import {
 import fs = require('fs')
 import Constants from './constants'
 import OperationFeeEstimator from './operation-fee-estimator'
+import { OriginationOperation, TezosToolkit } from '@taquito/taquito'
+import { InMemorySigner } from "@taquito/signer";
 
 /** Filenames for contracts. */
 const NORMALIZER_CONTRACT_FILE = __dirname + '/normalizer.tz'
@@ -41,9 +43,9 @@ function makeOracleStorage(
   if (logLevel == LogLevel.Debug) {
     Utils.print(
       'Using assets: ' +
-        assetNames.reduce((previousValue, assetName) => {
-          return previousValue + assetName + ', '
-        }, ''),
+      assetNames.reduce((previousValue, assetName) => {
+        return previousValue + assetName + ', '
+      }, ''),
     )
   }
   Utils.print('')
@@ -108,18 +110,21 @@ export async function deployOracle(
 
   try {
     Utils.print('Deploying an oracle contract.')
+
+    // Configure a Taquito instance
+    const signer = await InMemorySigner.fromSecretKey(deployerPrivateKey)
+    const tezos = new TezosToolkit(tezosNodeURL)
+    tezos.setProvider({ signer })
+
     const storage = makeOracleStorage(logLevel, assetNames, signerPublicKey)
     const contract = readContract(ORACLE_CONTRACT_FILE)
 
-    const addresses = await deploy(
-      logLevel,
-      deployerPrivateKey,
-      [contract],
-      [storage],
-      tezosNodeURL,
-    )
-    Utils.print('New Contract Address: ' + addresses[0])
-  } catch (error) {
+    const deployResult: OriginationOperation = await tezos.contract.originate({
+      code: contract,
+      init: storage
+    })
+    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+  } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -159,6 +164,11 @@ export async function deployNormalizer(
     Utils.print('Deploying a normalizer contract.')
     Utils.print('')
 
+    // Configure a Taquito instance
+    const signer = await InMemorySigner.fromSecretKey(deployerPrivateKey)
+    const tezos = new TezosToolkit(tezosNodeURL)
+    tezos.setProvider({ signer })
+
     // Prepare storage parameters.
     const storage = makeNormalizerStorage(
       assetNames,
@@ -167,15 +177,12 @@ export async function deployNormalizer(
     )
     const contract = readContract(NORMALIZER_CONTRACT_FILE)
 
-    const addresses = await deploy(
-      logLevel,
-      deployerPrivateKey,
-      [contract],
-      [storage],
-      tezosNodeURL,
-    )
-    Utils.print('New Contract Address: ' + addresses[0])
-  } catch (error) {
+    const deployResult: OriginationOperation = await tezos.contract.originate({
+      code: contract,
+      init: storage
+    })
+    Utils.print('New Contract Address: ' + deployResult.contractAddress)
+  } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

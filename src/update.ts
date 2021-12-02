@@ -160,9 +160,9 @@ export async function updateOracleFromCoinbaseOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
       )
     }
     Utils.print('')
@@ -213,7 +213,7 @@ export async function updateOracleFromCoinbaseOnce(
     const hash = nodeResult.operationGroupID.replace(/"/g, '')
     Utils.print('Update sent with hash: ' + hash)
     return hash
-  } catch (error) {
+  } catch (error: any) {
     Utils.print('Error occurred while trying to update.')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -330,9 +330,9 @@ export async function updateOracleFromFeedOnce(
     if (logLevel == LogLevel.Debug) {
       Utils.print(
         'Using assets: ' +
-          assetNames.reduce((previousValue, assetName) => {
-            return previousValue + assetName + ', '
-          }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
       )
     }
     Utils.print('')
@@ -381,7 +381,7 @@ export async function updateOracleFromFeedOnce(
     const hash = nodeResult.operationGroupID.replace(/"/g, '')
     Utils.print('Update sent with hash: ' + hash)
     return hash
-  } catch (error) {
+  } catch (error: any) {
     Utils.print('Error occurred while trying to update.')
     if (logLevel == LogLevel.Debug) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
