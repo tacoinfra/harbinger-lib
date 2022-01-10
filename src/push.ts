@@ -1,14 +1,12 @@
+/** Taquito types storage as any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access  */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import { LogLevel } from './common'
 import Utils from './utils'
-import {
-  TezosNodeWriter,
-  TezosParameterFormat,
-  TezosNodeReader,
-  KeyStore,
-  Transaction,
-} from 'conseiljs'
-import Constants from './constants'
-import OperationFeeEstimator from './operation-fee-estimator'
+import { ContractMethod, TezosToolkit, Wallet } from '@taquito/taquito'
 
 /**
  * Push oracle data to a normalizer contract one or more times.
@@ -83,41 +81,24 @@ export async function pushOracleDataOnce(
     Utils.print(`To: ${normalizerContractAddress}`)
     Utils.print('')
 
-    // Generate a keystore.
-    const keystore = await Utils.keyStoreFromPrivateKey(pusherPrivateKey)
-    const signer = await Utils.signerFromKeyStore(keystore)
+    // Set up TezosToolkit with a signer
+    const tezos = await Utils.tezosToolkitFromPrivateKey(
+      tezosNodeURL,
+      pusherPrivateKey,
+    )
+    const publicKeyHash = await tezos.signer.publicKeyHash()
     if (logLevel == LogLevel.Debug) {
-      Utils.print(`Pushing from account: ${keystore.publicKeyHash}`)
+      Utils.print(`Pushing from account: ${publicKeyHash}`)
       Utils.print('')
     }
 
-    await Utils.revealAccountIfNeeded(tezosNodeURL, keystore, signer)
-
-    const counter = await TezosNodeReader.getCounterForAccount(
-      tezosNodeURL,
-      keystore.publicKeyHash,
-    )
-    const operation = constructPushOperation(
-      logLevel,
-      keystore,
-      counter + 1,
+    const pushOperation = await constructPushOperation(
+      tezos,
       oracleContractAddress,
       normalizerContractAddress,
     )
-
-    const operationFeeApplicator = new OperationFeeEstimator(tezosNodeURL)
-    const operationsWithFees = await operationFeeApplicator.estimateAndApplyFees(
-      [operation],
-    )
-
-    const nodeResult = await TezosNodeWriter.sendOperation(
-      tezosNodeURL,
-      operationsWithFees,
-      signer,
-    )
-    Utils.print(
-      `Push sent with hash: ${nodeResult.operationGroupID.replace(/"/g, '')}`,
-    )
+    const result = await pushOperation.send()
+    Utils.print(`Push sent with hash: ${result.opHash}`)
   } catch (error: any) {
     Utils.print('Error occurred while trying to update.')
     if (logLevel == LogLevel.Debug) {
@@ -131,40 +112,15 @@ export async function pushOracleDataOnce(
  * Make a push operation.
  *
  * @param logLevel The level at which to log output.
- * @param keystore The keystore for the account.
- * @param counter The counter for the operation.
+ * @param tezos A TezosToolkit configured with a signer.
  * @param oracleContractAddress The address of the oracle contract.
  * @param normalizerContractAddress The address of the normalizer contract.
- * @param tezosNodeURL The Tezos node to use.
- * @param dependentOperation An optional operation that must be executed prior to the push.
  */
-export function constructPushOperation(
-  logLevel: LogLevel,
-  keystore: KeyStore,
-  counter: number,
+export async function constructPushOperation(
+  tezos: TezosToolkit,
   oracleContractAddress: string,
   normalizerContractAddress: string,
-): Transaction {
-  // Make the update parameter.
-  const parameter = `"${normalizerContractAddress}%update"`
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Made parameter: ')
-    Utils.print(parameter)
-    Utils.print('')
-  }
-
-  // Calculate gas and storage used for the operation.
-  const entrypoint = 'push'
-  return TezosNodeWriter.constructContractInvocationOperation(
-    keystore.publicKeyHash,
-    counter,
-    oracleContractAddress,
-    0,
-    0,
-    Constants.storageLimit,
-    Constants.gasLimit,
-    entrypoint,
-    parameter,
-    TezosParameterFormat.Michelson,
-  )
+): Promise<ContractMethod<Wallet>> {
+  const contract = await tezos.wallet.at(oracleContractAddress)
+  return contract.methods['push'](`${normalizerContractAddress}%update`)
 }

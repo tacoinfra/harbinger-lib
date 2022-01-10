@@ -1,12 +1,11 @@
+/** Taquito types storage as any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access  */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import { LogLevel } from './common'
 import Utils from './utils'
-import {
-  TezosNodeReader,
-  TezosNodeWriter,
-  TezosParameterFormat,
-} from 'conseiljs'
-import Constants from './constants'
-import OperationFeeEstimator from './operation-fee-estimator'
 
 /**
  * Revoke an Oracle contract.
@@ -32,11 +31,14 @@ export default async function revokeOracle(
   try {
     Utils.print('Revoking oracle contract: ' + oracleContractAddress)
 
-    // Generate a keystore.
-    const keystore = await Utils.keyStoreFromPrivateKey(revokerPrivateKey)
-    const signer = await Utils.signerFromKeyStore(keystore)
+    // Generate a configured toolkit
+    const tezos = await Utils.tezosToolkitFromPrivateKey(
+      tezosNodeURL,
+      revokerPrivateKey,
+    )
+    const publicKeyHash = await tezos.signer.publicKeyHash()
     if (logLevel == LogLevel.Debug) {
-      Utils.print('Revoking from account: ' + keystore.publicKeyHash)
+      Utils.print(`Revoking from account: ${publicKeyHash}`)
       Utils.print('')
     }
 
@@ -48,45 +50,17 @@ export default async function revokeOracle(
       Utils.print('')
     }
 
-    const counter = await TezosNodeReader.getCounterForAccount(
-      tezosNodeURL,
-      keystore.publicKeyHash,
-    )
-    const entrypoint = 'revoke'
-    const operation = TezosNodeWriter.constructContractInvocationOperation(
-      keystore.publicKeyHash,
-      counter,
-      oracleContractAddress,
-      0,
-      0,
-      Constants.storageLimit,
-      Constants.gasLimit,
-      entrypoint,
-      parameter,
-      TezosParameterFormat.Michelson,
-    )
+    // Construct an operation.
+    const contract = await tezos.contract.at(oracleContractAddress)
+    const operation = contract.methods['revoke'](parameter)
 
-    const operationFeeEstimator = new OperationFeeEstimator(tezosNodeURL)
-    const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
-      [operation],
-    )
-    const nodeResult = await TezosNodeWriter.sendOperation(
-      tezosNodeURL,
-      operationsWithFees,
-      signer,
-    )
-
-    Utils.print(
-      `Revoked with operation hash: ${nodeResult.operationGroupID.replace(
-        /"/g,
-        '',
-      )}`,
-    )
+    // Send operation
+    const result = await operation.send()
+    Utils.print(`Revoked with operation hash: ${result.hash}`)
   } catch (error: any) {
     Utils.print('Error occurred while trying to revoke.')
     if (logLevel == LogLevel.Debug) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Utils.print(error.message)
+      Utils.print(error)
     }
     Utils.print('')
   }
