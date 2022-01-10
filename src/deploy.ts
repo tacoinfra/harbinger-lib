@@ -36,9 +36,9 @@ function makeOracleStorage(
   if (logLevel == LogLevel.Debug) {
     Utils.print(
       'Using assets: ' +
-      assetNames.reduce((previousValue, assetName) => {
-        return previousValue + assetName + ', '
-      }, ''),
+        assetNames.reduce((previousValue, assetName) => {
+          return previousValue + assetName + ', '
+        }, ''),
     )
   }
   Utils.print('')
@@ -120,8 +120,7 @@ export async function deployOracle(
   } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Utils.print(error.message)
+      Utils.print(error)
     }
     Utils.print('')
 
@@ -178,8 +177,7 @@ export async function deployNormalizer(
   } catch (error: any) {
     Utils.print('Error deploying contract')
     if (logLevel == LogLevel.Debug) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Utils.print(error.message)
+      Utils.print(error)
     }
     Utils.print('')
   }

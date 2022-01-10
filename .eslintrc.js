@@ -19,13 +19,11 @@ module.exports = {
         browser: true, // Enable browser global variables
         node: true, // Enable node global variables & Node.js scoping
         es2020: true, // Add all ECMAScript 2020 globals and automatically set the ecmaVersion parser option to ES2020
-        jest: true, // Add Jest testing global variables
     },
 
     plugins: [
         '@typescript-eslint', // Add some TypeScript specific rules, and disable rules covered by the typechecker
         'import', // Add rules that help validate proper imports
-        'jest', // Add rules for writing better Jest tests
         'prettier', // Allows running prettier as an ESLint rule, and reporting differences as individual linting issues
     ],
 
@@ -41,9 +39,6 @@ module.exports = {
         'plugin:import/errors',
         'plugin:import/warnings',
         'plugin:import/typescript',
-
-        // Add rules for Jest-specific syntax
-        'plugin:jest/recommended',
 
         // Add rules that specifically require type information using our tsconfig
         'plugin:@typescript-eslint/recommended-requiring-type-checking',

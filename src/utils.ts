@@ -5,17 +5,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 
 import secp256k1 from 'secp256k1'
-import sodium from 'libsodium-wrappers'
-import {
-  KeyStore,
-  Signer,
-  TezosMessageUtils,
-  TezosNodeReader,
-  TezosNodeWriter,
-} from 'conseiljs'
-import { KeyStoreUtils, SoftSigner } from 'conseiljs-softsigner'
 import ASN1 from './asn1'
 import Prefixes from './prefixes'
+import { TezosToolkit } from '@taquito/taquito'
+import { InMemorySigner } from '@taquito/signer'
 
 // Following libraries do not include .d.ts files.
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -71,90 +64,53 @@ const utils = {
   },
 
   /**
-   * Create a Conseil `Signer` from the given Conseil `KeyStore`.
-   *
-   * @param keyStore The keystore to convert to a signer.
-   * @returns A new `Signer`.
-   */
-  async signerFromKeyStore(keyStore: KeyStore): Promise<Signer> {
-    const bytes = TezosMessageUtils.writeKeyWithHint(keyStore.secretKey, 'edsk')
-    return await SoftSigner.createSigner(bytes)
-  },
-
-  /**
    * Reveal an account if required.
    *
-   * @param tezosNodeURL The Tezos node URL to use.
-   * @param keyStore The keystore for the account to reveal.
-   * @param signer A signer which can sign a reveal operation.
+   * @param tezos A TezosToolkit that is configured with a signer that will reveal itself if needed.
    */
-  async revealAccountIfNeeded(
-    tezosNodeURL: string,
-    keyStore: KeyStore,
-    signer: Signer,
-  ): Promise<void> {
-    const publicKeyHash = keyStore.publicKeyHash
-    if (
-      await TezosNodeReader.isManagerKeyRevealedForAccount(
-        tezosNodeURL,
-        publicKeyHash,
-      )
-    ) {
+  async revealAccountIfNeeded(tezos: TezosToolkit): Promise<void> {
+    const signer = tezos.signer
+    const publicKeyHash = await signer.publicKeyHash()
+    const isAlreadyRevealed = await tezos.rpc.getManagerKey(publicKeyHash)
+    if (isAlreadyRevealed) {
       return
     }
 
     this.print(
       `Account ${publicKeyHash} is not revealed. Sending a one time operation to reveal the account.`,
     )
-    const result = await TezosNodeWriter.sendKeyRevealOperation(
-      tezosNodeURL,
-      signer,
-      keyStore,
-      undefined,
-    )
-    const hash = result.operationGroupID.replace(/"/g, '')
-
-    this.print(`Reveal sent with hash: ${hash}`)
+    const result = await tezos.contract.reveal({})
+    this.print(`Reveal sent with hash: ${result.hash}`)
     this.print(`Waiting for operation to be included...`)
-    let isRevealed = false
-    while (!isRevealed) {
-      await this.sleep(15)
-      this.print('Still waiting')
-      isRevealed = await TezosNodeReader.isManagerKeyRevealedForAccount(
-        tezosNodeURL,
-        publicKeyHash,
-      )
-    }
+    await result.confirmation(2)
     this.print(`All done!`)
     this.print(``)
   },
+
   /**
-   * Create a Conseil `Keystore` from the given private key.
+   * Create a TezosToolkit, configured with a signer.
    *
+   * Creating an instance will reveal the account if needed.
+   *
+   * @param tezosNodeURL The URL of the TezosNode to use.
    * @param privateKey A base58check encoded private key, beginning with 'edsk'.
    * @returns A `Keystore` representing the private key.
    */
-  async keyStoreFromPrivateKey(privateKey: string): Promise<KeyStore> {
-    if (!privateKey.startsWith('edsk')) {
-      throw new Error('Only edsk keys are supported')
-    }
+  async tezosToolkitFromPrivateKey(
+    tezosNodeURL: string,
+    privateKey: string,
+  ): Promise<TezosToolkit> {
+    // Set up a toolkit
+    const tezos = new TezosToolkit(tezosNodeURL)
 
-    // Make sure use did not unwittingly provide a seed.
-    if (privateKey.length === 54) {
-      // Decode and slice the `edsk` prefix.
-      await sodium.ready
-      const decodedBytes = base58Check.decode(privateKey).slice(4)
-      const keyPair = sodium.crypto_sign_seed_keypair(decodedBytes)
-      const derivedPrivateKeyBytes = this.mergeBytes(
-        Prefixes.ed25519SecretKey,
-        keyPair.privateKey,
-      )
-      const derivedPrivateKey = base58Check.encode(derivedPrivateKeyBytes)
+    // Configure a signer.
+    const signer = new InMemorySigner(privateKey)
+    tezos.setProvider({ signer })
 
-      return await KeyStoreUtils.restoreIdentityFromSecretKey(derivedPrivateKey)
-    } else {
-      return await KeyStoreUtils.restoreIdentityFromSecretKey(privateKey)
-    }
+    // Reveal the account if required
+    await this.revealAccountIfNeeded(tezos)
+
+    return tezos
   },
 
   /**

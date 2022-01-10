@@ -1,26 +1,21 @@
-/** Data from Coinbase is untyped as `any`. */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/** Taquito types storage as any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access  */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 
 import { LogLevel } from './common'
 import Utils from './utils'
-import {
-  TezosNodeReader,
-  TezosNodeWriter,
-  TezosParameterFormat,
-  KeyStore,
-  Signer,
-  TezosLanguageUtil,
-  Transaction,
-} from 'conseiljs'
 import * as WebRequest from 'web-request'
-import Constants from './constants'
 import { constructPushOperation } from './push'
+import {
+  ContractMethod,
+  TezosToolkit,
+  Wallet,
+  MichelsonMap,
+} from '@taquito/taquito'
 import crypto = require('crypto')
-import OperationFeeEstimator from './operation-fee-estimator'
+import { unpackData, Parser } from '@taquito/michel-codec'
 
 /**
  * Data returned from an Oracle.
@@ -30,7 +25,7 @@ interface OracleData {
   //
   // Example message:
   // (Pair "BTC-USD" (Pair 1594499220 (Pair 1594559220 (Pair 9208860000 (Pair 9210510000 (Pair 9208850000 (Pair 9210510000 596189)))))))
-  messages: Array<string>
+  messages: Array<object> // Record<string, Array<string>>>
 
   // String based signatures.
   //
@@ -55,7 +50,6 @@ interface OracleData {
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
- * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  */
 export default async function updateOracleFromCoinbase(
   logLevel: LogLevel,
@@ -68,18 +62,20 @@ export default async function updateOracleFromCoinbase(
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees = false,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
     Utils.print('')
   }
 
-  // Generate a keystore.
-  const keyStore = await Utils.keyStoreFromPrivateKey(posterPrivateKey)
-  const signer = await Utils.signerFromKeyStore(keyStore)
+  // Generate a configured toolkit
+  const tezos = await Utils.tezosToolkitFromPrivateKey(
+    tezosNodeURL,
+    posterPrivateKey,
+  )
+  const publicKeyHash = await tezos.signer.publicKeyHash()
   if (logLevel == LogLevel.Debug) {
-    Utils.print('Updating from account: ' + keyStore.publicKeyHash)
+    Utils.print(`Updating from account: ${publicKeyHash}`)
     Utils.print('')
   }
 
@@ -90,16 +86,13 @@ export default async function updateOracleFromCoinbase(
     while (true) {
       await updateOracleFromCoinbaseOnce(
         logLevel,
+        tezos,
         apiKeyID,
         apiSecret,
         apiPassphrase,
         oracleContractAddress,
         assetNames,
-        keyStore,
-        signer,
-        tezosNodeURL,
         normalizerContractAddress,
-        enableZeroFees,
       )
 
       Utils.print(
@@ -110,16 +103,13 @@ export default async function updateOracleFromCoinbase(
   } else {
     await updateOracleFromCoinbaseOnce(
       logLevel,
+      tezos,
       apiKeyID,
       apiSecret,
       apiPassphrase,
       oracleContractAddress,
       assetNames,
-      keyStore,
-      signer,
-      tezosNodeURL,
       normalizerContractAddress,
-      enableZeroFees,
     )
   }
 }
@@ -128,34 +118,27 @@ export default async function updateOracleFromCoinbase(
  * Update the oracle service from Coinbase exactly once.
  *
  * @param logLevel The level at which to log output.
+ * @param tezos A TezosToolkit configured with a signer.
  * @param apiKeyID The ID of the Coinbase Pro API key to use.
  * @param apiSecret The secret for the Coinbase Pro API key.
  * @param apiPassphrase The passphrase for the Coinbase API key.
  * @param oracleContractAddress The address of the oracle contract.
  * @param assetNames An array of asset names to include in the oracle. The asset names must be in alphabetical order.
- * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
- * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
- * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  * @returns The operation hash.
  */
 export async function updateOracleFromCoinbaseOnce(
   logLevel: LogLevel,
+  tezos: TezosToolkit,
   apiKeyID: string,
   apiSecret: string,
   apiPassphrase: string,
   oracleContractAddress: string,
   assetNames: Array<string>,
-  keyStore: KeyStore,
-  signer: Signer,
-  tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees = false,
 ): Promise<string> {
   try {
-    await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
-
     Utils.print('Updating oracle located at: ' + oracleContractAddress)
     if (logLevel == LogLevel.Debug) {
       Utils.print(
@@ -167,57 +150,38 @@ export async function updateOracleFromCoinbaseOnce(
     }
     Utils.print('')
 
-    const counter = await TezosNodeReader.getCounterForAccount(
-      tezosNodeURL,
-      keyStore.publicKeyHash,
-    )
-    const operations: Array<Transaction> = []
-    const operation = await makeUpdateOperationFromCoinbase(
+    // Construct a batch containing the update operation.
+    const batch = tezos.wallet.batch()
+    const updateOperation = await makeUpdateOperationFromCoinbase(
       logLevel,
+      tezos,
       apiKeyID,
       apiSecret,
       apiPassphrase,
       assetNames,
-      keyStore,
       oracleContractAddress,
-      counter + 1,
     )
-    operations.push(operation)
+    batch.withContractCall(updateOperation)
 
-    // Push an operation to the normalizer if an address was provided.
+    // Add a push operation to the batch if a normalizer address was provided.
     if (normalizerContractAddress !== undefined) {
-      const normalizerPushOperation = constructPushOperation(
-        logLevel,
-        keyStore,
-        counter + 2,
+      const normalizerPushOperation = await constructPushOperation(
+        tezos,
         oracleContractAddress,
         normalizerContractAddress,
       )
-      operations.push(normalizerPushOperation)
+      batch.withContractCall(normalizerPushOperation)
     }
 
-    const operationFeeEstimator = new OperationFeeEstimator(
-      tezosNodeURL,
-      enableZeroFees,
-    )
-    const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
-      operations,
-    )
-
-    const nodeResult = await TezosNodeWriter.sendOperation(
-      tezosNodeURL,
-      operationsWithFees,
-      signer,
-    )
-
-    const hash = nodeResult.operationGroupID.replace(/"/g, '')
-    Utils.print('Update sent with hash: ' + hash)
+    // Send batch
+    const result = await batch.send()
+    const hash = result.opHash
+    Utils.print(`Update sent with hash: ${hash}`)
     return hash
   } catch (error: any) {
     Utils.print('Error occurred while trying to update.')
     if (logLevel == LogLevel.Debug) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Utils.print(error.message)
+      Utils.print(error)
     }
     Utils.print('')
     return ''
@@ -235,7 +199,6 @@ export async function updateOracleFromCoinbaseOnce(
  * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
  * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
- * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  */
 export async function updateOracleFromFeed(
   logLevel: LogLevel,
@@ -246,18 +209,20 @@ export async function updateOracleFromFeed(
   updateIntervalSeconds: number | undefined,
   tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees = false,
 ): Promise<void> {
   if (logLevel == LogLevel.Debug) {
     Utils.print('Using node located at: ' + tezosNodeURL)
     Utils.print('')
   }
 
-  // Generate a keystore.
-  const keyStore = await Utils.keyStoreFromPrivateKey(posterPrivateKey)
-  const signer = await Utils.signerFromKeyStore(keyStore)
+  // Generate a configured toolkit
+  const tezos = await Utils.tezosToolkitFromPrivateKey(
+    tezosNodeURL,
+    posterPrivateKey,
+  )
+  const publicKeyHash = await tezos.signer.publicKeyHash()
   if (logLevel == LogLevel.Debug) {
-    Utils.print('Updating from account: ' + keyStore.publicKeyHash)
+    Utils.print(`Updating from account: ${publicKeyHash}`)
     Utils.print('')
   }
 
@@ -268,14 +233,11 @@ export async function updateOracleFromFeed(
     while (true) {
       await updateOracleFromFeedOnce(
         logLevel,
+        tezos,
         oracleFeedURL,
         oracleContractAddress,
         assetNames,
-        keyStore,
-        signer,
-        tezosNodeURL,
         normalizerContractAddress,
-        enableZeroFees,
       )
 
       Utils.print(
@@ -286,14 +248,11 @@ export async function updateOracleFromFeed(
   } else {
     await updateOracleFromFeedOnce(
       logLevel,
+      tezos,
       oracleFeedURL,
       oracleContractAddress,
       assetNames,
-      keyStore,
-      signer,
-      tezosNodeURL,
       normalizerContractAddress,
-      enableZeroFees,
     )
   }
 }
@@ -302,30 +261,22 @@ export async function updateOracleFromFeed(
  * Update the Oracle from a URL exactly once.
  *
  * @param logLevel The level at which to log output.
+ * @param tezos A TezosToolkit configured with a signer.
  * @param oracleFeedURL A URL which will serve the Oracle's data feed.
  * @param oracleContractAddress The address of the oracle contract.
  * @param assetNames An array of asset names to include in the oracle. The asset names must be in alphabetical order.
- * @param posterPrivateKey The base58check encoded private key of the poster. This account will pay operation fees.
- * @param updateIntervalSeconds The number of seconds between each update, or undefined if the update should only run once.
- * @param tezosNodeURL A URL of a Tezos node that the operation will be broadcast to.
  * @param normalizerContractAddress If set, updates are forwarded to a normalizer contract. Defaults to undefined.
- * @param enableZeroFees If `true`, the operation will be sent with zero-fees. Default is `false`.
  * @returns The operation hash.
  */
 export async function updateOracleFromFeedOnce(
   logLevel: LogLevel,
+  tezos: TezosToolkit,
   oracleFeedURL: string,
   oracleContractAddress: string,
   assetNames: Array<string>,
-  keyStore: KeyStore,
-  signer: Signer,
-  tezosNodeURL: string,
   normalizerContractAddress: string | undefined = undefined,
-  enableZeroFees = false,
 ): Promise<string> {
   try {
-    await Utils.revealAccountIfNeeded(tezosNodeURL, keyStore, signer)
-
     Utils.print('Updating oracle located at: ' + oracleContractAddress)
     if (logLevel == LogLevel.Debug) {
       Utils.print(
@@ -337,55 +288,36 @@ export async function updateOracleFromFeedOnce(
     }
     Utils.print('')
 
-    const counter = await TezosNodeReader.getCounterForAccount(
-      tezosNodeURL,
-      keyStore.publicKeyHash,
-    )
-    const operations: Array<Transaction> = []
-    const operation = await makeUpdateOperationFromFeed(
+    // Construct a batch containing the update operation.
+    const batch = tezos.wallet.batch()
+    const updateOperation = await makeUpdateOperationFromFeed(
       logLevel,
+      tezos,
       oracleFeedURL,
       assetNames,
-      keyStore,
       oracleContractAddress,
-      counter + 1,
     )
-    operations.push(operation)
+    batch.withContractCall(updateOperation)
 
-    // Push an operation to the normalizer if an address was provided.
+    // Add a push operation to the batch if a normalizer address was provided.
     if (normalizerContractAddress !== undefined) {
-      const normalizerPushOperation = constructPushOperation(
-        logLevel,
-        keyStore,
-        counter + 2,
+      const normalizerPushOperation = await constructPushOperation(
+        tezos,
         oracleContractAddress,
         normalizerContractAddress,
       )
-      operations.push(normalizerPushOperation)
+      batch.withContractCall(normalizerPushOperation)
     }
 
-    const operationFeeEstimator = new OperationFeeEstimator(
-      tezosNodeURL,
-      enableZeroFees,
-    )
-    const operationsWithFees = await operationFeeEstimator.estimateAndApplyFees(
-      operations,
-    )
-
-    const nodeResult = await TezosNodeWriter.sendOperation(
-      tezosNodeURL,
-      operationsWithFees,
-      signer,
-    )
-
-    const hash = nodeResult.operationGroupID.replace(/"/g, '')
-    Utils.print('Update sent with hash: ' + hash)
+    // Send batch
+    const result = await batch.send()
+    const hash = result.opHash
+    Utils.print(`Update sent with hash: ${hash}`)
     return hash
   } catch (error: any) {
     Utils.print('Error occurred while trying to update.')
     if (logLevel == LogLevel.Debug) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Utils.print(error.message)
+      Utils.print(error)
     }
     Utils.print('')
     return ''
@@ -396,25 +328,22 @@ export async function updateOracleFromFeedOnce(
  * Make an update operation from Coinbase.
  *
  * @param logLevel The log level to use.
+ * @param tezos A TezosToolkit configured with a signer.
  * @param apiKeyID The ID of the Coinbase Pro API key to use.
  * @param apiSecret The secret for the Coinbase Pro API key.
  * @param apiPassphrase The passphrase for the Coinbase API key.
  * @param assetNames The assets to update.
- * @param keystore The keystore to use for the update operation.
- * @param tezosNodeURL The tezos node url to use.
  * @param oracleContractAddress The contract address to use.
- * @param counter The counter to use.
  */
 async function makeUpdateOperationFromCoinbase(
   logLevel: LogLevel,
+  tezos: TezosToolkit,
   apiKeyID: string,
   apiSecret: string,
   apiPassphrase: string,
   assetNames: Array<string>,
-  keystore: KeyStore,
   oracleContractAddress: string,
-  counter: number,
-): Promise<Transaction> {
+): Promise<ContractMethod<Wallet>> {
   // Retrieve elements from the oracle data.
   const oracleData = await retrieveOracleDataFromCoinbase(
     apiKeyID,
@@ -428,63 +357,42 @@ async function makeUpdateOperationFromCoinbase(
   }
 
   // Iterate through keys and create Elts.
-  const elements = assetNames.map((assetName) => {
-    const element = listElementForAsset(oracleData, assetName)
-    if (!element) {
-      Utils.print('Unable to locate data for ' + assetName + ' in Oracle data')
-      Utils.print('Aborting.')
-      process.exit(1)
-    }
-    return element
-  })
+  const parameter = assetNames.reduce((map, assetName) => {
+    map.set(assetName, listElementForAsset(oracleData, assetName))
+    return map
+  }, new MichelsonMap())
 
-  // Make the update parameter.
-  const elementString = elements
-    .reduce((previousValue, element) => {
-      return previousValue + element + ';'
-    }, '')
-    .replace(/'/g, '"')
-  const parameter = `{${elementString}}`
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Made parameter: ')
-    Utils.print(parameter)
-    Utils.print('')
-  }
+  // const elements = assetNames.map((assetName) => {
+  //   const element = listElementForAsset(oracleData, assetName)
+  //   if (!element) {
+  //     Utils.print('Unable to locate data for ' + assetName + ' in Oracle data')
+  //     Utils.print('Aborting.')
+  //     process.exit(1)
+  //   }
+  //   return element
+  // })
 
-  const entrypoint = 'update'
-  return TezosNodeWriter.constructContractInvocationOperation(
-    keystore.publicKeyHash,
-    counter,
-    oracleContractAddress,
-    0,
-    0,
-    Constants.storageLimit,
-    Constants.gasLimit,
-    entrypoint,
-    parameter,
-    TezosParameterFormat.Michelson,
-  )
+  // Construct an update operation
+  const contract = await tezos.wallet.at(oracleContractAddress)
+  return contract.methods['update'](parameter)
 }
 
 /**
  * Make an update operation from a feed.
  *
  * @param logLevel The log level to use.
+ * @param tezos A TezosToolkit configured with a signer.
  * @param oracleFeedURL A URL which will serve the Oracle's data feed.
  * @param assetNames The assets to update.
- * @param keystore The keystore to use for the update operation.
- * @param tezosNodeURL The tezos node url to use.
  * @param oracleContractAddress The contract address to use.
- * @param counter The counter to use.
  */
 async function makeUpdateOperationFromFeed(
   logLevel: LogLevel,
+  tezos: TezosToolkit,
   oracleFeedURL: string,
   assetNames: Array<string>,
-  keystore: KeyStore,
   oracleContractAddress: string,
-  counter: number,
-): Promise<Transaction> {
+): Promise<ContractMethod<Wallet>> {
   // Retrieve elements from the oracle data.
   const oracleData = await retrieveOracleDataFromFeed(oracleFeedURL)
   if (logLevel == LogLevel.Debug) {
@@ -493,43 +401,16 @@ async function makeUpdateOperationFromFeed(
     Utils.print('')
   }
 
-  // Iterate through keys and create Elts.
-  const elements = assetNames.map((assetName) => {
-    const element = listElementForAsset(oracleData, assetName)
-    if (!element) {
-      Utils.print('Unable to locate data for ' + assetName + ' in Oracle data')
-      Utils.print('Aborting.')
-      process.exit(1)
-    }
-    return element
-  })
-
   // Make the update parameter.
-  const elementString = elements
-    .reduce((previousValue, element) => {
-      return previousValue + element + ';'
-    }, '')
-    .replace(/'/g, '"')
-  const parameter = `{${elementString}}`
-  if (logLevel == LogLevel.Debug) {
-    Utils.print('Made parameter: ')
-    Utils.print(parameter)
-    Utils.print('')
-  }
+  // Iterate through keys and create Elts.
+  const parameter = assetNames.reduce((map, assetName) => {
+    map.set(assetName, listElementForAsset(oracleData, assetName))
+    return map
+  }, new MichelsonMap())
 
-  const entrypoint = 'update'
-  return TezosNodeWriter.constructContractInvocationOperation(
-    keystore.publicKeyHash,
-    counter,
-    oracleContractAddress,
-    0,
-    0,
-    Constants.storageLimit,
-    Constants.gasLimit,
-    entrypoint,
-    parameter,
-    TezosParameterFormat.Michelson,
-  )
+  // Construct an update operation
+  const contract = await tezos.wallet.at(oracleContractAddress)
+  return contract.methods['update'](parameter)
 }
 
 /**
@@ -608,12 +489,9 @@ function parseRawOracleData(oracleData: any): any {
   const result = {
     messages: oracleData.messages.map((message: string) => {
       // Parse and normalize the Michelson.
-      const parsed = TezosLanguageUtil.hexToMichelson(message.slice(2))
-      const normalized = TezosLanguageUtil.normalizeMichelsonWhiteSpace(
-        parsed.code,
-      )
-
-      return normalized
+      const bytes = Utils.hexToBytes(message)
+      const parsed = unpackData(bytes)
+      return parsed
     }),
     signatures: oracleData.signatures,
   }
@@ -629,30 +507,54 @@ function parseRawOracleData(oracleData: any): any {
 function listElementForAsset(
   oracleData: OracleData,
   assetName: string,
-): string {
-  for (let i = 0; i < oracleData.messages.length; i++) {
-    const message = oracleData.messages[i]
-    if (message.includes(assetName)) {
-      const signature = oracleData.signatures[i]
+): Array<any> {
+  const parser = new Parser()
 
-      // The message format returned from Coinbase's API is:
-      // (Pair "BTC-USD" (Pair 1594499220 (Pair 1594559220 (Pair 9208860000 (Pair 9210510000 (Pair 9208850000 (Pair 9210510000 596189)))))))
-      //
-      // Whereas the contract wants an input parameter of:
-      // Elt "BTC-USD" (Pair 1594499220 (Pair 1594559220 (Pair 9208860000 (Pair 9210510000 (Pair 9208850000 (Pair 9210510000 596189))))))
-      //
-      // Reformat the message returned from Coinbase by slicing off the asset pair and 1st trailing paren,
-      // then reformat into an Elt keyed with the assetName.
-      const startSlice = `(Pair "${assetName}" `
-      const messageWithoutAssetName = message.slice(
-        startSlice.length,
-        message.length - 1,
-      )
-      const reformatted = `Elt '${assetName}'(Pair '${signature}' ${messageWithoutAssetName})`
-      return reformatted
+  // Iterate through all messages looking for asset
+  for (let i = 0; i < oracleData.messages.length; i++) {
+    // Check if the asset is the one we're looking for.
+    const message = parser.parseJSON(oracleData.messages[i])
+    if (JSON.stringify(message).includes(assetName)) {
+      // Extract signature and message from parallel sorted arrays.
+      const signature = oracleData.signatures[i]
+      const message = oracleData.messages[i]
+      const parameter = [
+        signature,
+        getValue(message, 1, 'int'),
+        getValue(message, 2, 'int'),
+        getValue(message, 3, 'int'),
+        getValue(message, 4, 'int'),
+        getValue(message, 5, 'int'),
+        getValue(message, 6, 'int'),
+        getValue(message, 6, 'int', true),
+      ]
+      return parameter
     }
   }
   throw new Error(
     `Could not locate ${assetName} in ${JSON.stringify(oracleData.messages)}`,
   )
+}
+
+/**
+ * Helper function to retrieve an argument from a set of nested pairs.
+ *
+ * @param input The input object, as a JSON Micheline.
+ * @param depth The 0-indexed depth of the value to retrieve.
+ * @param key The type of the value in the pair (ex. "string", "int")
+ * @param secondInPair The value is the second in the pair.
+ */
+function getValue(
+  input: any,
+  depth: number,
+  key: string,
+  secondInPair = false,
+): string {
+  if (depth == 0) {
+    const index = secondInPair ? 1 : 0
+    return input['args'][index][key]
+  }
+
+  const nested = input['args'][1]
+  return getValue(nested, depth - 1, key, secondInPair)
 }

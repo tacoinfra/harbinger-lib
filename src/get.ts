@@ -1,16 +1,13 @@
-/** Contract data read from Conseil is untyped. */
+/** Taquito types storage as any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access  */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { LogLevel } from './common'
 import Utils from './utils'
-import {
-  TezosNodeReader,
-  TezosMessageUtils,
-  TezosParameterFormat,
-} from 'conseiljs'
+import { TezosToolkit } from '@taquito/taquito'
 
 /**
  * Get a value from the oracle and print it.
@@ -37,81 +34,26 @@ export default async function get(
   }
 
   // Fetch storage to get the BigMap index.
-  const storage = await TezosNodeReader.getContractStorage(
-    tezosNodeURL,
-    oracleContractAddress,
-    undefined,
-    undefined,
-  )
-  const bigMapIndex = storage['args'][0]['int']
-  if (logLevel == LogLevel.Debug) {
-    Utils.print(`Got storage: ${JSON.stringify(storage)}`)
-    Utils.print(`Got big map index ${JSON.stringify(bigMapIndex)}`)
-    Utils.print('')
-  }
-
-  // Pack Key
-  const packedBytes = TezosMessageUtils.writePackedData(
-    assetCode,
-    'string',
-    TezosParameterFormat.Michelson,
-  )
-  const packedHex = TezosMessageUtils.encodeBigMapKey(
-    Buffer.from(packedBytes, 'hex'),
-  )
-  if (logLevel == LogLevel.Debug) {
-    Utils.print(`Packed big map key to ${packedHex}`)
-    Utils.print('')
-  }
-
-  // Get big map value.
-  const value = await TezosNodeReader.getValueForBigMapKey(
-    tezosNodeURL,
-    bigMapIndex,
-    packedHex,
-    undefined,
-    'main',
-  )
+  const tezos = new TezosToolkit(tezosNodeURL)
+  const contract = await tezos.contract.at(oracleContractAddress)
+  const storage: any = await contract.storage()
+  const value = await storage.oracleData.get(assetCode)
   if (logLevel == LogLevel.Debug) {
     Utils.print('Retrieved value from big map: ' + JSON.stringify(value))
     Utils.print('')
   }
 
-  // Print values.
   Utils.print(`Oracle Data for Asset: ${assetCode}`)
-  Utils.print(`Period Start: ${JSON.stringify(getValue(value, 0, 'string'))}`)
-  Utils.print(`Period End: ${JSON.stringify(getValue(value, 1, 'string'))}`)
+  Utils.print(`Period Start: ${value[0]}`)
+  Utils.print(`Period End: ${value[1]}`)
 
-  Utils.print(`Open: ${normalizeDataPoint(Number(getValue(value, 2, 'int')))}`)
-  Utils.print(`High: ${normalizeDataPoint(Number(getValue(value, 3, 'int')))}`)
-  Utils.print(`Low: ${normalizeDataPoint(Number(getValue(value, 4, 'int')))}`)
-  Utils.print(`Close: ${normalizeDataPoint(Number(getValue(value, 5, 'int')))}`)
-
-  // Volume isn't nested in pairs so the helper can't be used.
-  const rawValue =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    value['args'][1]['args'][1]['args'][1]['args'][1]['args'][1]['args'][1][
-      'int'
-    ]
-  Utils.print(`Volume: ${normalizeDataPoint(Number(rawValue))}`)
+  Utils.print(`Open: ${normalizeDataPoint(Number(value[2]))}`)
+  Utils.print(`High: ${normalizeDataPoint(Number(value[3]))}`)
+  Utils.print(`Low: ${normalizeDataPoint(Number(value[4]))}`)
+  Utils.print(`Close: ${normalizeDataPoint(Number(value[5]))}`)
+  Utils.print(`Volume: ${normalizeDataPoint(Number(value[6]))}`)
 
   Utils.print('')
-}
-
-/**
- * Helper function to retrieve an argument from a set of nested pairs.
- *
- * @param input The input object, as a JSON Micheline.
- * @param depth The 0-indexed depth of the value to retrieve.
- * @param key The type of the value in the pair (ex. "string", "int")
- */
-function getValue(input: any, depth: number, key: string): any {
-  if (depth == 0) {
-    return input['args'][0][key]
-  }
-
-  const nested = input['args'][1]
-  return getValue(nested, depth - 1, key)
 }
 
 /**
